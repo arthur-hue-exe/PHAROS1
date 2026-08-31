@@ -193,7 +193,7 @@ export const courses: Course[] = [
     installmentValue: 137.50,
     image: 'https://images.pexels.com/photos/8425354/pexels-photo-8425354.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     imageAlt: 'Vigilante patrimonial em posto de segurança',
-    workload: '40 horas',
+    workload: '50 horas',
     modality: 'Presencial',
     requirements: [
       '1 foto 3x4',
@@ -259,7 +259,7 @@ export const courses: Course[] = [
     installmentValue: 141.67,
     image: 'https://images.pexels.com/photos/28288101/pexels-photo-28288101.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     imageAlt: 'Veículo blindado de transporte de valores',
-    workload: '40 horas',
+    workload: '50 horas',
     modality: 'Presencial',
     requirements: [
       'Curso de formação de vigilante homologado',
@@ -324,7 +324,7 @@ export const courses: Course[] = [
     installmentValue: 183.33,
     image: 'https://images.pexels.com/photos/9275222/pexels-photo-9275222.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     imageAlt: 'Profissional de segurança em evento com grande público',
-    workload: '40 horas',
+    workload: '50 horas',
     modality: 'Presencial',
     requirements: [
       '1 foto 3x4',
@@ -389,7 +389,7 @@ export const courses: Course[] = [
     installmentValue: 300,
     image: 'https://images.pexels.com/photos/8425052/pexels-photo-8425052.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     imageAlt: 'Profissional de segurança pessoal acompanhando cliente',
-    workload: '40 horas',
+    workload: '50 horas',
     modality: 'Presencial',
     requirements: [
       'Curso de vigilante homologado',
@@ -443,12 +443,12 @@ export const courses: Course[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 6. EXTENSÃO SUPERVISOR DE VIGILANTE
+  // 6. FORMAÇÃO DE VIGILANTE SUPERVISOR
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: '6',
     slug: 'extensao-supervisor-de-vigilante',
-    title: 'Extensão Supervisor de Vigilante',
+    title: 'Formação de Vigilante Supervisor',
     category: 'Aperfeiçoamento',
     shortDescription: 'Formação para supervisores de operações de segurança. Turmas diurnas, noturnas e fins de semana. Próxima turma: 17/08/2026.',
     price: 1100,
@@ -456,7 +456,7 @@ export const courses: Course[] = [
     installmentValue: 191.67,
     image: 'https://images.pexels.com/photos/11783119/pexels-photo-11783119.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     imageAlt: 'Supervisor de segurança em sala de controle operacional',
-    workload: '48 horas',
+    workload: '120 horas',
     modality: 'Presencial',
     requirements: [
       '1 foto 3x4',
@@ -487,7 +487,7 @@ export const courses: Course[] = [
       'Gestão de crises e coordenação com autoridades',
     ],
     certification:
-      'Certificado de Extensão Supervisor de Vigilante, habilitando o profissional para exercer função de supervisão em empresas de segurança privada.',
+      'Certificado de Formação de Vigilante Supervisor, habilitando o profissional para exercer função de supervisão em empresas de segurança privada.',
     faqs: [
       {
         q: 'Quais modalidades estão disponíveis?',

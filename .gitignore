@@ -41,3 +41,6 @@ build/
 
 # Supabase CLI temp files (gerados por supabase link/start)
 supabase/.temp/
+
+# Pasta de recursos de origem (não precisa ser versionada)
+ico/

@@ -1,0 +1,54 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# PHAROS — Apache .htaccess para hospedagem na KingHost (ou qualquer Apache)
+#
+# Finalidade:
+#   Garantir que todas as rotas da SPA (React + HashRouter) funcionem
+#   ao acessar diretamente uma URL ou ao atualizar o navegador.
+#
+# Como o projeto usa HashRouter (URLs como /#/admin, /#/empresa/matriculas),
+# o servidor nunca vê o fragmento — mas o .htaccess é necessário para:
+#   1. Servir index.html para qualquer path que não seja arquivo/diretório real
+#   2. Forçar HTTPS em produção
+#   3. Configurar cache correto para assets Vite (hashes imutáveis)
+#   4. Adicionar headers de segurança básicos
+# ──────────────────────────────────────────────────────────────────────────────
+
+Options -Indexes
+RewriteEngine On
+
+# ── Forçar HTTPS (remova este bloco se o painel da KingHost já gerencia SSL) ──
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ── SPA Fallback: serve index.html para qualquer path sem arquivo/dir real ────
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L]
+
+# ── Cache imutável para assets com hash no nome (gerados pelo Vite) ───────────
+<FilesMatch "\.(js|css|woff2?|ttf|eot|otf|svg|png|jpg|jpeg|webp|gif|ico)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </IfModule>
+</FilesMatch>
+
+# ── HTML: nunca cachear index.html (garante atualizações imediatas) ───────────
+<FilesMatch "index\.html$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</FilesMatch>
+
+# ── Headers de segurança básicos ──────────────────────────────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ── Compressão gzip (melhora performance) ────────────────────────────────────
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+</IfModule>

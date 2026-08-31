@@ -626,42 +626,6 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-export interface NewsItem {
-  id: string;
-  date: string;
-  dateLabel: string;
-  title: string;
-  summary: string;
-  image: string;
-  alt: string;
-  isPast: boolean;
-}
-
-export const newsItems: NewsItem[] = [
-  {
-    id: 'n1',
-    date: '2024-11-13',
-    dateLabel: '13 de Novembro de 2024',
-    title: 'Evento discute nova legislação de segurança privada',
-    summary:
-      'Encontro promovido por Banco Santander, Fenavist e entidades do setor debateu desafios e avanços da nova legislação de segurança privada, com foco em formação profissional e atualização dos padrões operacionais.',
-    image: 'https://images.pexels.com/photos/9275222/pexels-photo-9275222.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    alt: 'Plateia em evento de conferência assistindo apresentação',
-    isPast: true,
-  },
-  {
-    id: 'n2',
-    date: '2024-11-13',
-    dateLabel: '13 de Novembro de 2024',
-    title: 'Fenavist reúne profissionais para debate setorial',
-    summary:
-      'O evento trouxe painéis sobre a regulamentação atualizada, capacitação contínua e os novos desafios enfrentados por profissionais de segurança privada em todo o país.',
-    image: 'https://images.pexels.com/photos/26202153/pexels-photo-26202153.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    alt: 'Profissionais em conferência corporativa prestando atenção à palestra',
-    isPast: true,
-  },
-];
-
 export interface TimelineStep {
   step: string;
   title: string;

@@ -20,7 +20,6 @@ import CourseCatalog from '@/components/sections/CourseCatalog';
 import Gallery from '@/components/sections/Gallery';
 import Timeline from '@/components/sections/Timeline';
 import Testimonials from '@/components/sections/Testimonials';
-import News from '@/components/sections/News';
 import CTASection from '@/components/sections/CTASection';
 import ContactForm from '@/components/sections/ContactForm';
 
@@ -44,7 +43,6 @@ function HomePage() {
       <Gallery />
       <Timeline />
       <Testimonials />
-      <News />
       <CTASection />
       <ContactForm />
     </>

@@ -52,362 +52,466 @@ export interface Course {
   is_available: boolean;
 }
 
+// ── Certidões exigidas (texto padrão reutilizado nos cursos) ──────────────────
+const CERTIDOES_EXIGIDAS = [
+  'Certidão Negativa Criminal Estadual',
+  'Certidão Militar da União',
+  'Certidão Negativa de Crimes Federais',
+  'Certidão Negativa de Crimes Eleitorais',
+  'Certidão de Quitação Eleitoral',
+];
+
+// ── FAQ padrão sobre certidões ────────────────────────────────────────────────
+const FAQ_CERTIDOES: CourseFaq[] = [
+  {
+    q: 'Quais certidões criminais são exigidas?',
+    a: 'Certidão Negativa Criminal Estadual, Certidão Militar da União, Certidão Negativa de Crimes Federais, Certidão Negativa de Crimes Eleitorais e Certidão de Quitação Eleitoral. Os dados devem ser compatíveis com a identidade apresentada — não são aceitos nomes divergentes.',
+  },
+  {
+    q: 'A escola pode retirar as certidões?',
+    a: 'Sim. A instituição pode realizar a retirada das certidões por R$ 10,00 por certidão.',
+  },
+  {
+    q: 'Como devem ser entregues as cópias dos documentos?',
+    a: 'Toda a documentação deve ser apresentada no ato da matrícula. As cópias devem ser legíveis e coloridas.',
+  },
+];
+
+// ── FAQ padrão sobre exames ───────────────────────────────────────────────────
+const FAQ_EXAMES: CourseFaq[] = [
+  {
+    q: 'Como funciona o pagamento dos exames?',
+    a: 'Os exames psicotécnico (R$ 50,00) e médico (R$ 40,00) são pagos diretamente aos médicos no dia do exame, em dinheiro ou PIX.',
+  },
+];
+
+// ── FAQ padrão sobre alojamento ───────────────────────────────────────────────
+const FAQ_ALOJAMENTO: CourseFaq[] = [
+  {
+    q: 'Há opção de alojamento?',
+    a: 'Sim. O alojamento custa R$ 25,00 por dia, com Wi-Fi e piscina inclusos. O aluno deve levar roupa de cama e travesseiro. Existe local para lavar roupas.',
+  },
+];
+
 export const courses: Course[] = [
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. FORMAÇÃO DE VIGILANTE
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: '1',
-    slug: 'atualizacao-transporte-de-valores',
-    title: 'Atualização em Transporte de Valores',
-    category: 'Atualização',
-    shortDescription: 'Reciclagem obrigatória para profissionais de transporte de valores com foco em procedimentos, segurança e legislação vigente.',
-    price: 800,
-    installments: 4,
-    installmentValue: 200,
-    image: 'https://images.pexels.com/photos/28288101/pexels-photo-28288101.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Camininhão blindado de transporte de valores estacionado em via urbana',
-    workload: '60 horas',
+    slug: 'formacao-de-vigilante',
+    title: 'Curso de Formação de Vigilante',
+    category: 'Profissional',
+    shortDescription: 'Formação completa para atuar como vigilante patrimonial armado. 200 horas presenciais com turmas intensivas (20 dias) ou noturnas (44 noites). Segurança armada.',
+    price: 1500,
+    installments: 6,
+    installmentValue: 300,
+    image: 'https://images.pexels.com/photos/4653119/pexels-photo-4653119.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+    imageAlt: 'Profissional de segurança em treinamento tático',
+    workload: '200 H/Aulas',
     modality: 'Presencial',
     requirements: [
-      'Certificado de Formação de Vigilante vigente',
-      'Mínimo 18 anos',
-      'Documento de identificação e CPF',
-      'Comprovante de residência',
+      '21 anos completos',
+      '1 foto 3x4 (pode ser tirada gratuitamente na instituição)',
+      'Cópia de identidade ou CNH dentro da validade de 10 anos',
+      'Cópia do CPF',
+      'Certificado de reservista ou dispensa com foto (para homens, conforme regras informadas)',
+      'Histórico escolar — mínimo 8ª série completo',
+      'Comprovante de endereço atual com CEP (validade de 3 meses)',
+      ...CERTIDOES_EXIGIDAS,
     ],
     description:
-      'Curso de atualização focado em profissionais que atuam no transporte de valores. Aborda procedimentos operacionais, roteiros, gestão de risco, condução defensiva e resposta a incidentes, em conformidade com a legislação atual e as exigências da Portaria do Departamento de Polícia Federal.',
+      'O Curso de Formação de Vigilante habilita profissionais para atuação em segurança patrimonial armada, conforme exigências da legislação vigente. Com 200 horas de carga horária presencial, o curso é oferecido em duas modalidades: intensiva (20 dias consecutivos) e noturna (44 noites). O aluno receberá formação completa em legislação, procedimentos operacionais, armamento, tiro, primeiros socorros e ética profissional.',
     objectives: [
-      'Atualizar conhecimentos técnicos sobre transporte de valores',
-      'Revisar procedimentos de segurança e protocolos operacionais',
-      'Aperfeiçoar respostas a situações de risco e emergência',
-      'Reforçar conhecimentos sobre legislação aplicada ao setor',
+      'Habilitar o aluno para atuar como vigilante patrimonial armado',
+      'Dominar legislação aplicada à segurança privada',
+      'Desenvolver técnicas de postura, posicionamento e ronda',
+      'Aprender procedimentos de armamento, tiro e manuseio seguro',
+      'Capacitar para primeiros socorros e resposta a emergências',
+      'Formar conduta ética e profissional no exercício da função',
     ],
     syllabus: [
-      'Legislação aplicada ao transporte de valores',
-      'Procedimentos operacionais e roteiros',
-      'Gestão de risco e planejamento de rotas',
-      'Condução defensiva e evasiva',
-      'Resposta a incidentes e ocorrências',
-      'Armamento e munição: atualização',
-      'Primeiros socorros aplicados',
+      'Legislação da segurança privada',
       'Ética e conduta profissional',
+      'Técnicas de vigilância e ronda',
+      'Armamento e munição',
+      'Tiro prático supervisionado',
+      'Primeiros socorros',
+      'Prevenção e combate a incêndio',
+      'Relações humanas e atendimento ao público',
+      'Noções de informática aplicada',
+      'Educação física e condicionamento',
     ],
     certification:
-      'Certificado de Atualização reconhecido conforme exigências da Polícia Federal para reciclagem de profissionais de segurança privada.',
+      'Certificado de Formação de Vigilante homologado, habilitando o profissional para exercer a função de vigilante patrimonial armado conforme legislação vigente.',
     faqs: [
       {
-        q: 'A atualização é obrigatória?',
-        a: 'Sim. A reciclagem periódica é exigida para manutenção da habilitação profissional conforme legislação vigente.',
+        q: 'Quais são as modalidades disponíveis?',
+        a: 'Modalidade intensiva: 20 dias consecutivos (segunda a segunda), das 08:00 às 17:20. Modalidade noturna: 44 noites (segunda a sexta), das 18:30 às 22:50. Para a modalidade noturna, o interessado deve deixar o nome na lista.',
       },
       {
-        q: 'Preciso levar o armamento?',
-        a: 'Não. Os equipamentos e materiais de instrução prática são fornecidos pela escola durante as aulas.',
+        q: 'Qual é o valor do curso?',
+        a: 'R$ 1.500,00 à vista ou R$ 1.800,00 no cartão de crédito em até 6x de R$ 300,00. Não trabalhamos com boleto ou link de pagamento.',
       },
       {
-        q: 'Há horários noturnos?',
-        a: 'Disponibilizamos turmas em diferentes horários. Consulte a agenda com nossa equipe de matrículas.',
+        q: 'Quais são as próximas turmas?',
+        a: 'Turmas previstas: 10/08, 24/08, 07/09, 28/09, 05/10 e 19/10. Confirme disponibilidade pelo WhatsApp.',
       },
+      {
+        q: 'O material didático está incluso?',
+        a: 'A apostila em PDF está inclusa. A apostila física pode ser adquirida por R$ 45,00.',
+      },
+      {
+        q: 'Há alojamento disponível?',
+        a: 'Sim, R$ 25,00 por dia com Wi-Fi e piscina. O aluno deve levar roupa de cama e travesseiro. Existe local para lavar roupas.',
+      },
+      {
+        q: 'Há alimentação no local?',
+        a: 'Refeitório, restaurantes, lanchonetes e mercado ficam nas proximidades da instituição, mas não fazem parte da estrutura interna.',
+      },
+      {
+        q: 'Há regras de vestimenta?',
+        a: 'Para atividades físicas: traje permitido com no máximo 4 dedos acima do joelho e tênis. Para demais aulas: roupa padrão com calça.',
+      },
+      ...FAQ_EXAMES,
+      ...FAQ_CERTIDOES,
     ],
     is_available: true,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. ATUALIZAÇÃO DE VIGILANTE PATRIMONIAL
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: '2',
-    slug: 'aperfeicoamento-seguranca-pessoal-privada',
-    title: 'Aperfeiçoamento em Segurança Pessoal Privada',
-    category: 'Aperfeiçoamento',
-    shortDescription: 'Capacitação avançada para execução de escolta armada e proteção de pessoas, com técnicas táticas e protocolos de conduta.',
-    price: 1400,
-    installments: 4,
-    installmentValue: 350,
-    image: 'https://images.pexels.com/photos/8425354/pexels-photo-8425354.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Profissionais de segurança executiva acompanhando cliente em veículo',
-    workload: '120 horas',
-    modality: 'Presencial',
-    requirements: [
-      'Certificado de Formação de Vigilante vigente',
-      'Mínimo 21 anos',
-      'Aprovação em avaliação psicotécnica',
-      'Documento de identificação e CPF',
-    ],
-    description:
-      'Curso de aperfeiçoamento destinado a profissionais que desejam atuar na área de segurança pessoal privada — execução de escolta armada e proteção de executivos. Combina teoria, prática tática e simulações realistas para preparar o aluno para cenários reais de proteção.',
-    objectives: [
-      'Desenvolver habilidades de proteção executiva e escolta',
-      'Aplicar técnicas de varredura, posicionamento e cobertura',
-      'Trear protocolos de conduta em diferentes cenários de risco',
-      'Aperfeiçoar comunicação e trabalho em equipe de proteção',
-    ],
-    syllabus: [
-      'Fundamentos da segurança pessoal privada',
-      'Técnicas de escolta e proteção de executivos',
-      'Posicionamento, cobertura e varredura ambiental',
-      'Condução defensiva e evasiva aplicada',
-      'Armamento e tiro defensivo',
-      'Defesa pessoal aplicada à proteção',
-      'Comunicação e coordenação de equipe',
-      'Gestão de crises e respostas a incidentes',
-      'Simulações práticas e estudos de caso',
-    ],
-    certification:
-      'Certificado de Aperfeiçoamento em Segurança Pessoal Privada, válido para fins de capacitação profissional no setor.',
-    faqs: [
-      {
-        q: 'Este curso habilita para escolta armada?',
-        a: 'O curso oferece a capacitação técnica para atuação na área. A habilitação formal depende dos requisitos legais aplicáveis.',
-      },
-      {
-        q: 'Qual o nível de exigência física?',
-        a: 'Recomendamos condição física adequada. As atividades práticas incluem deslocamentos, simulações e defesa pessoal.',
-      },
-      {
-        q: 'Preciso ter experiência prévia em segurança?',
-        a: 'É necessário possuir Formação de Vigilante vigente. O curso é voltado para profissionais que buscam especialização.',
-      },
-    ],
-    is_available: true,
-  },
-  {
-    id: '3',
-    slug: 'atualizacao-seguranca-pessoal-privada',
-    title: 'Atualização em Segurança Pessoal Privada',
+    slug: 'atualizacao-vigilante-patrimonial',
+    title: 'Atualização de Vigilante Patrimonial',
     category: 'Atualização',
-    shortDescription: 'Reciclagem para profissionais de segurança pessoal privada com revisão de técnicas táticas, protocolos e legislação.',
-    price: 1400,
+    shortDescription: 'Reciclagem obrigatória para vigilantes patrimoniais. 5 dias presenciais, apenas diurno, turmas às segundas-feiras.',
+    price: 500,
     installments: 4,
-    installmentValue: 350,
-    image: 'https://images.pexels.com/photos/8425052/pexels-photo-8425052.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Profissional de segurança pessoal protegendo cliente durante saída de veículo',
-    workload: '80 horas',
-    modality: 'Presencial',
-    requirements: [
-      'Certificado de Formação ou Aperfeiçoamento em Segurança Pessoal Privada',
-      'Mínimo 21 anos',
-      'Documento de identificação e CPF',
-    ],
-    description:
-      'Curso de atualização para profissionais que já atuam ou possuem formação em segurança pessoal privada. Revisa técnicas de proteção, escolta, conduta tática e atualizações legislativas, garantindo que o profissional mantenha-se alinhado às melhores práticas do setor.',
-    objectives: [
-      'Atualizar técnicas de proteção e escolta executiva',
-      'Revisar protocolos táticos e de conduta',
-      'Reforçar conhecimentos sobre legislação atualizada',
-      'Aperfeiçoar respostas a situações de risco',
-    ],
-    syllabus: [
-      'Revisão de técnicas de proteção executiva',
-      'Atualização legislativa do setor',
-      'Protocolos de escolta e posicionamento',
-      'Condução defensiva: reciclagem',
-      'Armamento e tiro: atualização',
-      'Simulações e cenários práticos',
-      'Gestão de crises e tomada de decisão',
-    ],
-    certification:
-      'Certificado de Atualização em Segurança Pessoal Privada, reconhecido para fins de reciclagem profissional.',
-    faqs: [
-      {
-        q: 'Qual a diferença entre o curso de Aperfeiçoamento e a Atualização?',
-        a: 'O Aperfeiçoamento é a formação inicial na área. A Atualização é a reciclagem periódica para quem já possui essa capacitação.',
-      },
-      {
-        q: 'O curso inclui práticas de tiro?',
-        a: 'Sim, inclui atualização de armamento e tiro defensivo como parte da grade prática.',
-      },
-    ],
-    is_available: true,
-  },
-  {
-    id: '4',
-    slug: 'supervisor-operacional-e-lideranca',
-    title: 'Supervisor Operacional e Liderança',
-    category: 'Profissional',
-    shortDescription: 'Formação para supervisores de operações de segurança com foco em liderança de equipes, gestão e procedimentos operacionais.',
-    price: 260,
-    installments: 3,
-    installmentValue: 86.67,
-    image: 'https://images.pexels.com/photos/11783119/pexels-photo-11783119.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Supervisor em sala de controle monitorando operações em telas',
+    installmentValue: 137.50,
+    image: 'https://images.pexels.com/photos/8425354/pexels-photo-8425354.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+    imageAlt: 'Vigilante patrimonial em posto de segurança',
     workload: '40 horas',
     modality: 'Presencial',
     requirements: [
-      'Experiência comprovada no setor de segurança privada',
-      'Certificado de Formação de Vigilante',
-      'Documento de identificação e CPF',
+      '1 foto 3x4',
+      'Identidade ou CNH válida',
+      'CPF',
+      'Certificado de reservista ou dispensa (para homens, conforme regras informadas)',
+      'Comprovante de endereço atual',
+      'Certificado do curso de formação de vigilante',
+      ...CERTIDOES_EXIGIDAS,
     ],
     description:
-      'Curso voltado para profissionais que atuam ou desejam atuar como supervisores operacionais em empresas de segurança privada. Aborda liderança, gestão de equipes, procedimentos operacionais, comunicação e resolução de conflitos, preparando o aluno para posições de coordenação.',
+      'Curso de atualização obrigatória para vigilantes patrimoniais que precisam manter sua habilitação profissional em dia. Com duração de 5 dias presenciais no período diurno, as turmas iniciam às segundas-feiras, no formato 12x36 em dias alternados.',
     objectives: [
-      'Desenvolver competências de liderança e gestão de equipes',
-      'Dominar procedimentos operacionais de supervisão',
-      'Aperfeiçoar comunicação e resolução de conflitos',
-      'Preparar-se para atuar como supervisor operacional',
+      'Reciclar conhecimentos técnicos e legais do vigilante patrimonial',
+      'Atualizar procedimentos operacionais conforme legislação vigente',
+      'Revisar armamento, tiro e protocolos de segurança',
+      'Reforçar postura ética e conduta profissional',
+    ],
+    syllabus: [
+      'Atualização legislativa da segurança privada',
+      'Revisão de técnicas de vigilância e posicionamento',
+      'Armamento e tiro: reciclagem',
+      'Primeiros socorros: atualização',
+      'Ética e relações profissionais',
+    ],
+    certification:
+      'Certificado de Atualização de Vigilante Patrimonial, válido para fins de reciclagem e manutenção da habilitação profissional.',
+    faqs: [
+      {
+        q: 'Quando iniciam as turmas?',
+        a: 'As turmas têm início às segundas-feiras, no formato 12x36, com dias alternados. Confirme a próxima data disponível pelo WhatsApp.',
+      },
+      {
+        q: 'Qual o horário das aulas?',
+        a: 'Das 08:00 às 17:20, apenas no período diurno.',
+      },
+      {
+        q: 'Qual é o valor do curso?',
+        a: 'R$ 500,00 à vista ou R$ 550,00 no cartão de crédito em até 4x.',
+      },
+      {
+        q: 'O material didático está incluso?',
+        a: 'A apostila em PDF está inclusa. A apostila física pode ser adquirida por R$ 45,00.',
+      },
+      ...FAQ_EXAMES,
+      ...FAQ_ALOJAMENTO,
+      ...FAQ_CERTIDOES,
+    ],
+    is_available: true,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. APERFEIÇOAMENTO EM ESCOLTA / TRANSPORTE DE VALORES
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: '3',
+    slug: 'aperfeicoamento-escolta-transporte-de-valores',
+    title: 'Aperfeiçoamento e Atualização em Escolta e/ou Transporte de Numerário, Bens ou Valores',
+    category: 'Aperfeiçoamento',
+    shortDescription: 'Capacitação para atuação em escolta armada e transporte de valores. 5 dias presenciais, diurno. Próximas turmas: 10/08, 24/08, 07/09.',
+    price: 800,
+    installments: 6,
+    installmentValue: 141.67,
+    image: 'https://images.pexels.com/photos/28288101/pexels-photo-28288101.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+    imageAlt: 'Veículo blindado de transporte de valores',
+    workload: '40 horas',
+    modality: 'Presencial',
+    requirements: [
+      'Curso de formação de vigilante homologado',
+      'Identidade ou CNH válida',
+      'CPF',
+      'Histórico escolar — mínimo 8ª série completo',
+      'Certificado de reservista ou dispensa (para homens, conforme regras informadas)',
+      'Comprovante de endereço atual',
+      ...CERTIDOES_EXIGIDAS,
+    ],
+    description:
+      'Curso de aperfeiçoamento e atualização destinado a profissionais que atuam ou desejam atuar em escolta armada e transporte de numerário, bens ou valores. Com 5 dias consecutivos de aulas presenciais no período diurno, o curso prepara o vigilante para os desafios operacionais, táticos e legais desta especialidade.',
+    objectives: [
+      'Aperfeiçoar procedimentos operacionais de escolta armada',
+      'Dominar protocolos de transporte de valores',
+      'Atualizar técnicas de gestão de risco e planejamento de rotas',
+      'Revisar legislação aplicada ao transporte de valores',
+      'Desenvolver respostas eficazes a incidentes e emergências',
+    ],
+    syllabus: [
+      'Legislação aplicada ao transporte de valores',
+      'Procedimentos operacionais de escolta',
+      'Planejamento e gestão de rotas',
+      'Armamento e munição: reciclagem',
+      'Técnicas táticas em situações de risco',
+      'Resposta a incidentes e gestão de crises',
+      'Comunicação e coordenação de equipe',
+    ],
+    certification:
+      'Certificado de Aperfeiçoamento e Atualização em Escolta e/ou Transporte de Numerário, Bens ou Valores.',
+    faqs: [
+      {
+        q: 'Quais são as próximas turmas?',
+        a: 'Turmas previstas: 10/08, 24/08, 07/09, 21/09, 12/10 e 26/10. Confirme disponibilidade pelo WhatsApp.',
+      },
+      {
+        q: 'Qual é o valor do curso?',
+        a: 'R$ 800,00 à vista ou R$ 850,00 no cartão de crédito em até 6x.',
+      },
+      {
+        q: 'O material didático está incluso?',
+        a: 'A apostila em PDF está inclusa. A apostila física pode ser adquirida por R$ 35,00.',
+      },
+      ...FAQ_EXAMES,
+      ...FAQ_ALOJAMENTO,
+      ...FAQ_CERTIDOES,
+    ],
+    is_available: true,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. EXTENSÃO EM SEGURANÇA PARA GRANDES EVENTOS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: '4',
+    slug: 'extensao-seguranca-grandes-eventos',
+    title: 'Curso de Extensão em Segurança para Eventos Sociais / Grandes Eventos',
+    category: 'Aperfeiçoamento',
+    shortDescription: 'Capacitação para atuação em segurança de eventos sociais e grandes eventos. 5 dias presenciais, diurno. Consulte próximas turmas.',
+    price: 500,
+    installments: 3,
+    installmentValue: 183.33,
+    image: 'https://images.pexels.com/photos/9275222/pexels-photo-9275222.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+    imageAlt: 'Profissional de segurança em evento com grande público',
+    workload: '40 horas',
+    modality: 'Presencial',
+    requirements: [
+      '1 foto 3x4',
+      'Identidade ou CNH válida',
+      'CPF',
+      'Histórico escolar — mínimo 8ª série completo',
+      'Certificado de reservista ou dispensa (para homens, conforme regras informadas)',
+      'Comprovante de endereço atual',
+      'Certificado de curso de vigilante homologado',
+      ...CERTIDOES_EXIGIDAS,
+    ],
+    description:
+      'Curso de extensão voltado para vigilantes que desejam se especializar na segurança de eventos sociais e grandes eventos. Em 5 dias de formação presencial diurna, o aluno aprende técnicas específicas para controle de acesso, gestão de multidões, prevenção de incidentes e coordenação de equipes em ambientes de grande circulação de pessoas.',
+    objectives: [
+      'Capacitar para atuação em segurança de eventos sociais e grandes eventos',
+      'Desenvolver técnicas de controle de acesso e gestão de multidões',
+      'Aplicar protocolos de prevenção e resposta a incidentes em eventos',
+      'Aperfeiçoar comunicação e coordenação de equipe em campo',
+    ],
+    syllabus: [
+      'Legislação aplicada à segurança em eventos',
+      'Controle de acesso e credenciamento',
+      'Gestão e dispersão de multidões',
+      'Prevenção e resposta a incidentes',
+      'Comunicação operacional em eventos',
+      'Coordenação com forças de segurança pública',
+      'Primeiros socorros em eventos de massa',
+    ],
+    certification:
+      'Certificado de Extensão em Segurança para Eventos Sociais / Grandes Eventos.',
+    faqs: [
+      {
+        q: 'Quando são as próximas turmas?',
+        a: 'As datas das próximas turmas estão a confirmar. Entre em contato pelo WhatsApp para verificar a agenda atualizada.',
+      },
+      {
+        q: 'Qual é o valor do curso?',
+        a: 'R$ 500,00 à vista ou R$ 550,00 no cartão de crédito em até 3x.',
+      },
+      {
+        q: 'O material didático está incluso?',
+        a: 'A apostila em PDF está inclusa. A apostila física pode ser adquirida por R$ 25,00.',
+      },
+      ...FAQ_EXAMES,
+      ...FAQ_ALOJAMENTO,
+      ...FAQ_CERTIDOES,
+    ],
+    is_available: true,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. APERFEIÇOAMENTO EM SEGURANÇA V.I.P.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: '5',
+    slug: 'aperfeicoamento-seguranca-vip',
+    title: 'Aperfeiçoamento e Atualização em Segurança V.I.P. — Segurança Pessoal Privado',
+    category: 'Aperfeiçoamento',
+    shortDescription: 'Especialização em segurança pessoal privada e proteção de VIPs. 5 dias presenciais, diurno. Próximas turmas: 10/08, 24/08, 07/09.',
+    price: 1500,
+    installments: 6,
+    installmentValue: 300,
+    image: 'https://images.pexels.com/photos/8425052/pexels-photo-8425052.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+    imageAlt: 'Profissional de segurança pessoal acompanhando cliente',
+    workload: '40 horas',
+    modality: 'Presencial',
+    requirements: [
+      'Curso de vigilante homologado',
+      'Identidade ou CNH válida',
+      'CPF',
+      'Histórico escolar — mínimo 8ª série completo',
+      'Comprovante de escolaridade mínimo de 5º ano completo',
+      'Certificado de reservista ou dispensa (para homens, conforme regras informadas)',
+      'Comprovante de endereço atual',
+      ...CERTIDOES_EXIGIDAS,
+    ],
+    description:
+      'Curso de aperfeiçoamento e atualização para vigilantes que desejam se especializar na área de Segurança Pessoal Privada — proteção de VIPs e pessoas de alto risco. O curso combina teoria e prática em 5 dias consecutivos de formação presencial diurna, abordando técnicas táticas, protocolos de escolta, leitura de ambiente e coordenação de equipe.',
+    objectives: [
+      'Especializar o vigilante para atuação em segurança pessoal privada',
+      'Desenvolver técnicas de proteção executiva e escolta de VIPs',
+      'Aplicar protocolos de varredura, posicionamento e cobertura',
+      'Aperfeiçoar tomada de decisão em situações de alto risco',
+      'Atualizar conhecimentos táticos e de armamento para a especialidade',
+    ],
+    syllabus: [
+      'Fundamentos da segurança pessoal privada',
+      'Legislação aplicada à proteção de VIPs',
+      'Técnicas de escolta e posicionamento tático',
+      'Varredura e análise de ambiente',
+      'Condução defensiva e evasiva',
+      'Armamento e tiro para segurança pessoal',
+      'Comunicação e coordenação de equipe de proteção',
+      'Gestão de crises e resposta a incidentes',
+    ],
+    certification:
+      'Certificado de Aperfeiçoamento e Atualização em Segurança V.I.P. — Segurança Pessoal Privado.',
+    faqs: [
+      {
+        q: 'Quais são as próximas turmas?',
+        a: 'Turmas previstas: 10/08, 24/08, 07/09, 21/09, 12/10 e 26/10. Confirme disponibilidade pelo WhatsApp.',
+      },
+      {
+        q: 'Qual é o valor do curso?',
+        a: 'R$ 1.500,00 à vista ou R$ 1.800,00 no cartão de crédito em até 6x de R$ 300,00.',
+      },
+      {
+        q: 'O material didático está incluso?',
+        a: 'A apostila em PDF está inclusa. A apostila física pode ser adquirida por R$ 35,00.',
+      },
+      ...FAQ_EXAMES,
+      ...FAQ_ALOJAMENTO,
+      ...FAQ_CERTIDOES,
+    ],
+    is_available: true,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 6. EXTENSÃO SUPERVISOR DE VIGILANTE
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: '6',
+    slug: 'extensao-supervisor-de-vigilante',
+    title: 'Extensão Supervisor de Vigilante',
+    category: 'Aperfeiçoamento',
+    shortDescription: 'Formação para supervisores de operações de segurança. Turmas diurnas, noturnas e fins de semana. Próxima turma: 17/08/2026.',
+    price: 1100,
+    installments: 6,
+    installmentValue: 191.67,
+    image: 'https://images.pexels.com/photos/11783119/pexels-photo-11783119.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+    imageAlt: 'Supervisor de segurança em sala de controle operacional',
+    workload: '48 horas',
+    modality: 'Presencial',
+    requirements: [
+      '1 foto 3x4',
+      'Identidade ou CNH válida',
+      'CPF',
+      'Certificado de reservista ou dispensa (para homens, conforme regras informadas)',
+      'Comprovante de endereço atual',
+      'Certificado do curso de formação de vigilante',
+      'Comprovação de no mínimo 2 anos de atuação como vigilante (registro em carteira)',
+      ...CERTIDOES_EXIGIDAS,
+    ],
+    description:
+      'Curso de extensão voltado para vigilantes experientes que desejam assumir posições de supervisão operacional em empresas de segurança privada. Oferecido em três modalidades — diurna, noturna e fins de semana — para adequar à rotina profissional de cada aluno. É exigida comprovação de no mínimo 2 anos de atuação como vigilante.',
+    objectives: [
+      'Capacitar vigilantes experientes para posições de supervisão operacional',
+      'Desenvolver habilidades de liderança, gestão de equipes e escalas',
+      'Dominar procedimentos de supervisão, ronda e relatórios operacionais',
+      'Aperfeiçoar comunicação, resolução de conflitos e tomada de decisão',
+      'Compreender responsabilidades legais e técnicas do cargo de supervisor',
     ],
     syllabus: [
       'Fundamentos de liderança em segurança privada',
       'Gestão de equipes e escalas operacionais',
       'Procedimentos de supervisão e ronda',
-      'Comunicação eficaz e relatórios operacionais',
+      'Comunicação eficaz e elaboração de relatórios',
       'Resolução de conflitos e tomada de decisão',
-      'Gestão de crises do ponto de vista do supervisor',
-      'Legislação e responsabilidades do supervisor',
+      'Responsabilidades legais do supervisor',
+      'Gestão de crises e coordenação com autoridades',
     ],
     certification:
-      'Certificado de conclusão do curso de Supervisor Operacional e Liderança.',
+      'Certificado de Extensão Supervisor de Vigilante, habilitando o profissional para exercer função de supervisão em empresas de segurança privada.',
     faqs: [
       {
-        q: 'Preciso ter experiência prévia como vigilante?',
-        a: 'Sim, é recomendável experiência no setor para aproveitar melhor o conteúdo.',
+        q: 'Quais modalidades estão disponíveis?',
+        a: 'Diurno: 6 dias, das 08:00 às 17:20. Noturno: 12 noites, das 18:30 às 22:50. Fins de semana: 6 finais de semana, das 08:00 às 17:20.',
       },
       {
-        q: 'O curso é voltado apenas para supervisores já atuantes?',
-        a: 'Não. Profissionais que desejam crescer na carreira e assumir posições de liderança também podem participar.',
-      },
-    ],
-    is_available: true,
-  },
-  {
-    id: '5',
-    slug: 'manutencao-e-manuseio-de-armas',
-    title: 'Manutenção e Manuseio de Armas',
-    category: 'Profissional',
-    shortDescription: 'Curso prático sobre manuseio, desmontagem, limpeza e manutenção de armas de fogo para profissionais de segurança.',
-    price: 260,
-    installments: 3,
-    installmentValue: 86.67,
-    image: 'https://images.pexels.com/photos/5202438/pexels-photo-5202438.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Armas de fogo e equipamentos de segurança em mesa de estande de tiro',
-    workload: '40 horas',
-    modality: 'Presencial',
-    requirements: [
-      'Certificado de Formação de Vigilante vigente',
-      'Mínimo 18 anos',
-      'Documento de identificação e CPF',
-    ],
-    description:
-      'Curso focado no manuseio seguro, desmontagem, montagem, limpeza e manutenção preventiva de armas de fogo utilizadas na segurança privada. Combina teoria e prática para garantir que o profissional domine os procedimentos corretos de cuidado com o armamento.',
-    objectives: [
-      'Dominar procedimentos de manuseio seguro de armas',
-      'Aprender desmontagem, montagem e limpeza',
-      'Realizar manutenção preventiva corretamente',
-      'Identificar e solucionar falhas comuns',
-    ],
-    syllabus: [
-      'Normas de segurança no manuseio de armas',
-      'Desmontagem e montagem de pistolas e revólveres',
-      'Limpeza e lubrificação adequadas',
-      'Manutenção preventiva e corretiva',
-      'Identificação de falhas e soluções',
-      'Armazenamento e transporte seguro',
-      'Prática supervisionada em estande',
-    ],
-    certification:
-      'Certificado de conclusão do curso de Manutenção e Manuseio de Armas.',
-    faqs: [
-      {
-        q: 'Preciso ter arma própria?',
-        a: 'Não. As armas utilizadas no curso são fornecidas pela escola.',
+        q: 'Quais são as próximas turmas?',
+        a: '17/08/2026 — início das turmas diurna e noturna. 22/08/2026 — início da turma de fins de semana.',
       },
       {
-        q: 'O curso inclui tiro prático?',
-        a: 'Inclui prática supervisionada em estande, com foco no manuseio e manutenção.',
-      },
-    ],
-    is_available: true,
-  },
-  {
-    id: '6',
-    slug: 'monitoramento-cftv',
-    title: 'Monitoramento CFTV',
-    category: 'Profissional',
-    shortDescription: 'Capacitação para operadores de monitoramento de câmeras de segurança com foco em vigilância, tecnologia e resposta.',
-    price: 260,
-    installments: 3,
-    installmentValue: 86.67,
-    image: 'https://images.pexels.com/photos/30692441/pexels-photo-30692441.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Operador de segurança em sala de controle monitorando telas de vigilância',
-    workload: '40 horas',
-    modality: 'Presencial',
-    requirements: [
-      'Mínimo 18 anos',
-      'Ensino fundamental completo',
-      'Documento de identificação e CPF',
-    ],
-    description:
-      'Curso voltado para profissionais que atuam ou desejam atuar em centrais de monitoramento de CFTV. Aborda operação de sistemas de câmeras, análise de imagens, detecção de anomalias, protocolos de resposta e tecnologia de vigilância eletrônica.',
-    objectives: [
-      'Operar sistemas de CFTV com eficiência',
-      'Identificar e analisar eventos suspeitos',
-      'Aplicar protocolos de resposta a incidentes',
-      'Compreender a tecnologia de vigilância eletrônica',
-    ],
-    syllabus: [
-      'Fundamentos de CFTV e vigilância eletrônica',
-      'Operação de centrais de monitoramento',
-      'Análise de imagens e detecção de anomalias',
-      'Protocolos de resposta a incidentes',
-      'Tecnologia de câmeras e gravadores',
-      'Relatórios e registro de ocorrências',
-      'Ética e sigilo profissional',
-    ],
-    certification:
-      'Certificado de conclusão do curso de Monitoramento CFTV.',
-    faqs: [
-      {
-        q: 'Preciso experiência prévia em tecnologia?',
-        a: 'Não. O curso parte dos fundamentos e é acessível a iniciantes.',
+        q: 'Qual é o valor do curso?',
+        a: 'R$ 1.100,00 à vista ou R$ 1.150,00 no cartão de crédito em até 6x.',
       },
       {
-        q: 'O curso serve para atuar em central de alarme?',
-        a: 'Sim, os conhecimentos são aplicáveis a centrais de monitoramento e alarme.',
-      },
-    ],
-    is_available: true,
-  },
-  {
-    id: '7',
-    slug: 'seguranca-bancaria',
-    title: 'Segurança Bancária',
-    category: 'Profissional',
-    shortDescription: 'Capacitação específica para atuação em segurança bancária com foco em procedimentos, atendimento e prevenção a riscos.',
-    price: 260,
-    oldPrice: 280,
-    offerBadge: 'Oferta',
-    installments: 3,
-    installmentValue: 86.67,
-    image: 'https://images.pexels.com/photos/13674041/pexels-photo-13674041.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    imageAlt: 'Agência bancária iluminada à noite com estrutura moderna',
-    workload: '40 horas',
-    modality: 'Presencial',
-    requirements: [
-      'Certificado de Formação de Vigilante vigente',
-      'Mínimo 18 anos',
-      'Documento de identificação e CPF',
-    ],
-    description:
-      'Curso voltado para profissionais que atuam ou desejam atuar em agências bancárias e dependências financeiras. Aborda procedimentos específicos do ambiente bancário, atendimento, prevenção a riscos, resposta a assaltos e conduta profissional.',
-    objectives: [
-      'Dominar procedimentos de segurança bancária',
-      'Atuar com conduta profissional em ambiente financeiro',
-      'Prevenir e responder a situações de risco',
-      'Aplicar protocolos específicos do setor bancário',
-    ],
-    syllabus: [
-      'Procedimentos de segurança em agências bancárias',
-      'Atendimento e conduta profissional',
-      'Prevenção a riscos e fraudes',
-      'Resposta a assaltos e ocorrências',
-      'Sistemas de segurança bancária',
-      'Protocolos de comunicação e emergência',
-      'Legislação aplicada ao setor financeiro',
-    ],
-    certification:
-      'Certificado de conclusão do curso de Segurança Bancária.',
-    faqs: [
-      {
-        q: 'Por que este curso está com preço promocional?',
-        a: 'Estamos com uma oferta especial para novos alunos. O valor original é de R$ 280,00.',
+        q: 'É necessário ter experiência prévia como vigilante?',
+        a: 'Sim. É exigida comprovação de no mínimo 2 anos de atuação como vigilante, com registro em carteira de trabalho.',
       },
       {
-        q: 'O curso é específico para vigilantes bancários?',
-        a: 'Sim, o conteúdo é voltado para a atuação em ambiente bancário e financeiro.',
+        q: 'O material didático está incluso?',
+        a: 'A apostila em PDF está inclusa. A apostila física pode ser adquirida por R$ 35,00.',
       },
+      ...FAQ_EXAMES,
+      ...FAQ_ALOJAMENTO,
+      ...FAQ_CERTIDOES,
     ],
     is_available: true,
   },
@@ -599,7 +703,7 @@ export interface StatItem {
 }
 
 export const stats: StatItem[] = [
-  { label: 'Cursos disponíveis', value: 7, suffix: '+' },
+  { label: 'Cursos disponíveis', value: 6, suffix: '' },
   { label: 'Profissionais capacitados', value: 500, suffix: '+' },
   { label: 'Modalidades de formação', value: 3, suffix: '' },
   { label: 'Atendimento em Goiás', value: 1, suffix: '' },

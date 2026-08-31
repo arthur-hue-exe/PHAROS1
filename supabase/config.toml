@@ -33,6 +33,12 @@ double_confirm_changes = true
 enable_confirmations = true
 
 [functions]
+# verify_jwt = false: permite chamar a função sem JWT do Supabase Auth.
+# Necessário para admin-login, pois é a própria rota de autenticação.
+# As demais funções verificam o JWT admin internamente (ADMIN_JWT_SECRET).
+[functions.admin-login]
+verify_jwt = false
+
 # Variáveis injetadas em todas as Edge Functions durante dev local.
 # Em produção, configure via: supabase secrets set NOME=valor
 # NUNCA comite valores reais aqui.

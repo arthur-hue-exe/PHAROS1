@@ -24,6 +24,10 @@ import {
 } from 'react';
 import { EDGE_BASE } from '@/lib/supabase';
 
+// Anon key necessária como header para o gateway do Supabase liberar a Edge Function.
+// É a chave pública — segura para estar no frontend.
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 interface AdminContextValue {
@@ -84,7 +88,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch(`${EDGE_BASE}/admin-login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // O gateway do Supabase exige a anon key para liberar chamadas às Edge Functions.
+          // Esta chave é pública — não é a service_role key.
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({ user, password }),
       });
 

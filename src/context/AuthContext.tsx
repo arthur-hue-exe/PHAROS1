@@ -9,13 +9,23 @@ import {
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
-interface Profile {
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+
+export type AccountType = 'particular' | 'empresa';
+
+export interface Profile {
   id: string;
   name: string | null;
   email: string | null;
   phone: string | null;
   email_verified: boolean;
   documents_uploaded: boolean;
+  /** Tipo de conta: particular (pessoa física) ou empresa */
+  account_type: AccountType;
+  /** Razão social / nome fantasia — preenchido apenas para empresas */
+  company_name: string | null;
+  /** CNPJ formatado — preenchido apenas para empresas */
+  cnpj: string | null;
 }
 
 interface AuthContextValue {
@@ -23,13 +33,26 @@ interface AuthContextValue {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, phone: string, name?: string) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    phone: string,
+    name: string,
+    accountType: AccountType,
+    companyName?: string,
+    cnpj?: string
+  ) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
+// ── Context ───────────────────────────────────────────────────────────────────
+
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const PROFILE_SELECT =
+  'id, name, email, phone, email_verified, documents_uploaded, account_type, company_name, cnpj';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -37,19 +60,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ── fetchProfile ─────────────────────────────────────────────────────────
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, email, phone, email_verified, documents_uploaded')
+      .select(PROFILE_SELECT)
       .eq('id', userId)
       .single();
-    if (data) setProfile(data as Profile);
+
+    if (error) {
+      if (import.meta.env.DEV) {
+        console.error('[AuthContext] fetchProfile error:', error.message);
+      }
+      return;
+    }
+    if (data) {
+      setProfile({
+        ...data,
+        // account_type pode não existir antes da migration — fallback seguro
+        account_type: (data.account_type as AccountType) ?? 'particular',
+        company_name: data.company_name ?? null,
+        cnpj: data.cnpj ?? null,
+      } as Profile);
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
+  // ── Inicialização / escuta de auth state ─────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -58,31 +98,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) fetchProfile(session.user.id);
+        else setProfile(null);
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
+  // ── signUp ───────────────────────────────────────────────────────────────
+  // Cria o usuário no Supabase Auth e depois atualiza a tabela profiles
+  // com account_type, company_name e cnpj (o trigger cria o registro base).
   const signUp = useCallback(async (
     email: string,
     password: string,
     phone: string,
-    name?: string
+    name: string,
+    accountType: AccountType,
+    companyName?: string,
+    cnpj?: string
   ): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signUp({
+    // 1. Criar conta no Auth
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { phone, name: name ?? '' } },
+      options: {
+        data: {
+          name,
+          phone,
+          account_type: accountType,
+          company_name: companyName ?? null,
+          cnpj: cnpj ?? null,
+        },
+      },
     });
-    if (error) return { error: error.message };
+
+    if (authError) return { error: authError.message };
+
+    // 2. O trigger handle_new_user cria o perfil com name/email/phone.
+    //    Precisamos atualizar account_type, company_name e cnpj em seguida.
+    //    Aguardamos brevemente para o trigger ter tempo de executar.
+    if (data.user) {
+      // Tenta atualizar até 3 vezes com delay crescente (trigger pode demorar ~100ms)
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        await new Promise((r) => setTimeout(r, attempt * 200));
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            account_type: accountType,
+            company_name: companyName ?? null,
+            cnpj: cnpj ?? null,
+          })
+          .eq('id', data.user.id);
+
+        if (!updateError) break;
+
+        if (import.meta.env.DEV) {
+          console.warn(
+            `[AuthContext] signUp: tentativa ${attempt} de atualizar profile falhou:`,
+            updateError.message
+          );
+        }
+      }
+    }
+
     return { error: null };
   }, []);
 
+  // ── signIn ───────────────────────────────────────────────────────────────
   const signIn = useCallback(async (
     email: string,
     password: string
@@ -92,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   }, []);
 
+  // ── signOut ──────────────────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);

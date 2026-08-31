@@ -15,7 +15,7 @@ import {
   ShieldCheck, LogOut, Users, FileText, Eye, Loader2,
   ArrowLeft, CheckCircle2, Clock, AlertCircle, Download,
   BookOpen, ToggleLeft, ToggleRight, RefreshCw, Search,
-  XCircle, ExternalLink,
+  XCircle, ExternalLink, Building2, User,
 } from 'lucide-react';
 import { useAdmin } from '@/context/AdminContext';
 import { useRouter } from '@/context/RouterContext';
@@ -32,6 +32,25 @@ interface UserRecord {
   email_verified: boolean;
   documents_uploaded: boolean;
   documents_uploaded_at: string | null;
+  created_at: string;
+  /** 'particular' | 'empresa' — fallback 'particular' para BDs sem migration */
+  account_type: 'particular' | 'empresa';
+  company_name: string | null;
+  cnpj: string | null;
+  /** Candidatos vinculados — presente apenas quando account_type === 'empresa' */
+  enrollees: EnrolleeRecord[];
+}
+
+interface EnrolleeRecord {
+  id: string;
+  company_id: string;
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  course: string | null;
+  course_slug: string | null;
+  notes: string | null;
+  status: 'pending' | 'confirmed' | 'cancelled';
   created_at: string;
 }
 
@@ -62,6 +81,18 @@ const DOC_LABELS: Record<string, string> = {
   rg: 'RG',
   titulo_eleitor: 'Título de Eleitor',
   comprovante_residencia: 'Comprovante de Residência',
+};
+
+const ENROLLEE_STATUS_LABEL: Record<string, string> = {
+  pending: 'Aguardando',
+  confirmed: 'Confirmado',
+  cancelled: 'Cancelado',
+};
+
+const ENROLLEE_STATUS_CLASS: Record<string, string> = {
+  pending: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  confirmed: 'bg-green-500/10 border-green-500/20 text-green-400',
+  cancelled: 'bg-white/5 border-white/10 text-steel',
 };
 
 type Tab = 'clients' | 'courses';
@@ -223,7 +254,13 @@ function ClientsTab({
         );
         return;
       }
-      setUsers(Array.isArray(data) ? data : []);
+      setUsers(Array.isArray(data) ? data.map((u) => ({
+        ...u,
+        account_type: (u.account_type as 'particular' | 'empresa') ?? 'particular',
+        company_name: u.company_name ?? null,
+        cnpj: u.cnpj ?? null,
+        enrollees: Array.isArray(u.enrollees) ? u.enrollees : [],
+      })) : []);
     } catch {
       setError(
         navigator.onLine
@@ -385,6 +422,9 @@ function ClientsTab({
                     Telefone
                   </th>
                   <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-steel">
+                    Tipo
+                  </th>
+                  <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-steel">
                     Status
                   </th>
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">
@@ -405,12 +445,20 @@ function ClientsTab({
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pharos-red/20 font-display text-xs font-bold text-pharos-red">
                           {(u.name ?? u.email).charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-white">{u.name ?? '—'}</span>
+                        <div>
+                          <span className="font-medium text-white">{u.name ?? '—'}</span>
+                          {u.account_type === 'empresa' && u.company_name && (
+                            <div className="text-xs text-steel truncate max-w-[140px]">{u.company_name}</div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-steel hidden md:table-cell">{u.email}</td>
                     <td className="px-5 py-4 text-steel hidden lg:table-cell">
                       {u.phone ?? '—'}
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <AccountTypeBadge accountType={u.account_type} />
                     </td>
                     <td className="px-5 py-4 text-center">
                       <UserStatusBadge user={u} />
@@ -468,11 +516,18 @@ function UserDetail({
             {(user.name ?? user.email).charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-bold text-white truncate">
-              {user.name ?? '—'}
-            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-display text-xl font-bold text-white truncate">
+                {user.name ?? '—'}
+              </h2>
+              <AccountTypeBadge accountType={user.account_type} />
+            </div>
+            {user.account_type === 'empresa' && user.company_name && (
+              <p className="text-sm font-semibold text-pharos-red">{user.company_name}</p>
+            )}
             <p className="text-sm text-steel">{user.email}</p>
             {user.phone && <p className="text-sm text-steel">{user.phone}</p>}
+            {user.cnpj && <p className="text-xs text-steel/70">CNPJ: {user.cnpj}</p>}
           </div>
         </div>
 
@@ -568,6 +623,11 @@ function UserDetail({
             </div>
           ))}
         </div>
+      )}
+
+      {/* ── Seção de candidatos — só aparece para empresas ── */}
+      {user.account_type === 'empresa' && (
+        <EnrolleesSection enrollees={user.enrollees} />
       )}
     </div>
   );
@@ -817,6 +877,100 @@ function SummaryCard({
     <div className="rounded-xl border border-white/10 bg-graphite-2/60 p-4 text-center">
       <div className={`font-display text-2xl font-bold ${color}`}>{value}</div>
       <div className="mt-1 text-xs text-steel">{label}</div>
+    </div>
+  );
+}
+
+// ── AccountTypeBadge ──────────────────────────────────────────────────────────
+
+function AccountTypeBadge({ accountType }: { accountType: 'particular' | 'empresa' }) {
+  if (accountType === 'empresa') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] font-semibold text-blue-400 whitespace-nowrap">
+        <Building2 className="h-3 w-3" />
+        Empresa
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-steel whitespace-nowrap">
+      <User className="h-3 w-3" />
+      Particular
+    </span>
+  );
+}
+
+// ── EnrolleesSection — candidatos da empresa no detalhe do admin ──────────────
+
+const ENROLLEE_STATUS_LABEL_LOCAL: Record<string, string> = {
+  pending: 'Aguardando',
+  confirmed: 'Confirmado',
+  cancelled: 'Cancelado',
+};
+
+const ENROLLEE_STATUS_CLASS_LOCAL: Record<string, string> = {
+  pending: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  confirmed: 'bg-green-500/10 border-green-500/20 text-green-400',
+  cancelled: 'bg-white/5 border-white/10 text-steel',
+};
+
+function EnrolleesSection({ enrollees }: { enrollees: EnrolleeRecord[] }) {
+  return (
+    <div className="mt-7">
+      <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-white mb-4">
+        <Users className="h-5 w-5 text-pharos-red" />
+        Candidatos pré-matriculados
+        <span className="rounded-full bg-pharos-red/10 border border-pharos-red/20 px-2 py-0.5 text-xs font-bold text-pharos-red">
+          {enrollees.length}
+        </span>
+      </h3>
+
+      {enrollees.length === 0 ? (
+        <p className="text-sm text-steel">Nenhum candidato cadastrado ainda.</p>
+      ) : (
+        <div className="space-y-3">
+          {enrollees.map((e) => (
+            <div
+              key={e.id}
+              className="rounded-xl border border-white/10 bg-graphite-2/60 p-4"
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-display text-sm font-semibold text-white">
+                      {e.name}
+                    </span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                        ENROLLEE_STATUS_CLASS_LOCAL[e.status] ?? ENROLLEE_STATUS_CLASS_LOCAL.pending
+                      }`}
+                    >
+                      {ENROLLEE_STATUS_LABEL_LOCAL[e.status] ?? e.status}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-steel">
+                    {e.cpf && <span>CPF: {e.cpf}</span>}
+                    {e.phone && <span>Tel: {e.phone}</span>}
+                  </div>
+                  {e.course && (
+                    <div className="mt-1 text-xs text-steel/80">
+                      Curso:{' '}
+                      <span className="text-white">{e.course}</span>
+                    </div>
+                  )}
+                  {e.notes && (
+                    <div className="mt-1 text-xs text-steel/60 italic">{e.notes}</div>
+                  )}
+                  <div className="mt-1 text-[10px] text-steel/50">
+                    Cadastrado em{' '}
+                    {new Date(e.created_at).toLocaleDateString('pt-BR')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

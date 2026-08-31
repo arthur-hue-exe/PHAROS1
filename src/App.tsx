@@ -31,6 +31,7 @@ import VerifyEmail from '@/components/VerifyEmail';
 import UploadDocs from '@/components/UploadDocs';
 import DocsSent from '@/components/DocsSent';
 import AdminPanel from '@/components/AdminPanel';
+import CompanyEnrollees from '@/components/CompanyEnrollees';
 
 function HomePage() {
   useScrollReveal();
@@ -51,7 +52,8 @@ function HomePage() {
 }
 
 const BARE_ROUTES = new Set([
-  'register', 'verify-email', 'upload-docs', 'docs-sent', 'admin', 'admin-user',
+  'register', 'verify-email', 'upload-docs', 'docs-sent',
+  'company-enrollees', 'admin', 'admin-user',
 ]);
 
 function AppContent() {
@@ -75,6 +77,7 @@ function AppContent() {
         {route.name === 'verify-email' && <VerifyEmail />}
         {route.name === 'upload-docs' && <UploadDocs />}
         {route.name === 'docs-sent' && <DocsSent />}
+        {route.name === 'company-enrollees' && <CompanyEnrollees />}
         {(route.name === 'admin' || route.name === 'admin-user') && <AdminPanel />}
       </div>
     );

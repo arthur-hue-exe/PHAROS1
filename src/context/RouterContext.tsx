@@ -10,6 +10,7 @@ export type Route =
   | { name: 'verify-email' }
   | { name: 'upload-docs' }
   | { name: 'docs-sent' }
+  | { name: 'company-enrollees' }
   | { name: 'admin' }
   | { name: 'admin-user'; userId: string };
 
@@ -35,6 +36,7 @@ function parseHash(): Route {
   if (hash === 'verificar-email') return { name: 'verify-email' };
   if (hash === 'enviar-documentos') return { name: 'upload-docs' };
   if (hash === 'documentos-enviados') return { name: 'docs-sent' };
+  if (hash === 'empresa/matriculas') return { name: 'company-enrollees' };
   if (hash === 'admin') return { name: 'admin' };
   return { name: 'home' };
 }
@@ -57,6 +59,8 @@ function routeToHash(route: Route): string {
       return '#/enviar-documentos';
     case 'docs-sent':
       return '#/documentos-enviados';
+    case 'company-enrollees':
+      return '#/empresa/matriculas';
     case 'admin':
       return '#/admin';
     case 'admin-user':

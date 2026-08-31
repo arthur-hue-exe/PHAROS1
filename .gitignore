@@ -38,3 +38,6 @@ build/
 
 .vscode/
 .DS_Store
+
+# Supabase CLI temp files (gerados por supabase link/start)
+supabase/.temp/

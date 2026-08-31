@@ -17,9 +17,10 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',   // restrinja ao domínio em produção
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  // Inclui 'apikey' pois o gateway do Supabase o exige e o browser envia no preflight
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
 };
 
 function json(data: unknown, status = 200) {

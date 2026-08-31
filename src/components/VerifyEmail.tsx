@@ -1,3 +1,19 @@
+/**
+ * VerifyEmail — confirmação de e-mail via OTP nativo do Supabase.
+ *
+ * Fluxo:
+ *  1. No signup, o Supabase envia automaticamente um e-mail com OTP de 6 dígitos.
+ *  2. O usuário digita o código aqui.
+ *  3. Chamamos supabase.auth.verifyOtp({ email, token, type: 'signup' }).
+ *  4. O Supabase confirma o e-mail e marca email_confirmed_at na tabela auth.users.
+ *  5. Um trigger no banco sincroniza email_confirmed_at → profiles.email_verified = true.
+ *  6. O usuário é redirecionado para upload-docs (particular) ou company-enrollees (empresa).
+ *
+ * Não utiliza RPCs customizadas (generate_verification_code / verify_email),
+ * que foram removidas por não existirem no banco e gerarem erros de 404.
+ * Não há MFA neste fluxo — é apenas a confirmação de e-mail padrão do Supabase.
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { MailCheck, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -9,38 +25,51 @@ const OTP_LENGTH = 6;
 export default function VerifyEmail() {
   const { user, profile, refreshProfile } = useAuth();
   const { navigate } = useRouter();
+
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
-  const [sent, setSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Redireciona se o e-mail já está verificado
   useEffect(() => {
-    if (profile?.email_verified) navigate({ name: 'upload-docs' });
+    if (!profile) return;
+    if (profile.email_verified) {
+      if (profile.account_type === 'empresa') {
+        navigate({ name: 'company-enrollees' });
+      } else {
+        navigate({ name: 'upload-docs' });
+      }
+    }
   }, [profile, navigate]);
 
+  // Contador de cooldown para reenvio
   useEffect(() => {
-    if (user && !sent) sendCode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
-  const sendCode = async () => {
-    if (!user) return;
+  // ── Reenviar e-mail de confirmação ────────────────────────────────────────
+  const handleResend = async () => {
+    if (!user?.email || resendCooldown > 0) return;
     setResending(true);
     setError('');
-    const { data, error: fnErr } = await supabase.rpc('generate_verification_code');
+    const { error: resendErr } = await supabase.auth.resend({
+      type: 'signup',
+      email: user.email,
+    });
     setResending(false);
-    if (fnErr) {
-      setError('Não foi possível enviar o código. Tente novamente.');
-      return;
-    }
-    setSent(true);
-    if (import.meta.env.DEV) {
-      console.info(`[DEV] Código de verificação: ${data}`);
+    if (resendErr) {
+      setError('Não foi possível reenviar o código. Tente novamente em instantes.');
+    } else {
+      setResendCooldown(60); // aguarda 60s antes de permitir novo reenvio
     }
   };
 
+  // ── Digitar código ────────────────────────────────────────────────────────
   const handleDigit = (index: number, value: string) => {
     const char = value.replace(/\D/g, '').slice(-1);
     const next = [...digits];
@@ -48,6 +77,11 @@ export default function VerifyEmail() {
     setDigits(next);
     if (char && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
+    }
+    // Auto-submit quando todos os dígitos estão preenchidos
+    if (char && index === OTP_LENGTH - 1) {
+      const code = next.join('');
+      if (code.length === OTP_LENGTH) submitCode(code);
     }
   };
 
@@ -58,27 +92,73 @@ export default function VerifyEmail() {
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
     const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
     if (text.length === OTP_LENGTH) {
       setDigits(text.split(''));
       inputRefs.current[OTP_LENGTH - 1]?.focus();
+      submitCode(text);
     }
   };
 
-  const handleVerify = async () => {
-    const code = digits.join('');
-    if (code.length < OTP_LENGTH) return setError('Digite os 6 dígitos do código.');
-    setLoading(true);
-    setError('');
-    const { data: ok, error: fnErr } = await supabase.rpc('verify_email', { code_input: code });
-    setLoading(false);
-    if (fnErr || !ok) {
-      setError('Código inválido ou expirado. Solicite um novo código.');
+  // ── Verificar OTP via Supabase Auth nativo ────────────────────────────────
+  const submitCode = async (code: string) => {
+    if (!user?.email) return;
+    if (code.length < OTP_LENGTH) {
+      setError('Digite os 6 dígitos do código.');
       return;
     }
+    setLoading(true);
+    setError('');
+
+    const { error: otpErr } = await supabase.auth.verifyOtp({
+      email: user.email,
+      token: code,
+      type: 'signup',
+    });
+
+    if (otpErr) {
+      setLoading(false);
+      // Mensagem amigável sem expor detalhes técnicos
+      if (otpErr.message.includes('expired') || otpErr.message.includes('invalid')) {
+        setError('Código inválido ou expirado. Clique em "Reenviar código" para receber um novo.');
+      } else {
+        setError('Não foi possível verificar o código. Tente novamente.');
+      }
+      if (import.meta.env.DEV) {
+        console.error('[VerifyEmail] verifyOtp error:', otpErr.message);
+      }
+      return;
+    }
+
+    // Sucesso: atualizar profile para refletir email_verified = true
+    // O trigger no banco já faz isso via email_confirmed_at,
+    // mas fazemos refreshProfile para atualizar o estado local imediatamente.
     await refreshProfile();
-    navigate({ name: 'upload-docs' });
+    // O useEffect acima vai redirecionar quando profile.email_verified ficar true.
+    // Caso o trigger ainda não tenha rodado, forçamos a navegação aqui.
+    const accountType = profile?.account_type ?? 'particular';
+    if (accountType === 'empresa') {
+      navigate({ name: 'company-enrollees' });
+    } else {
+      navigate({ name: 'upload-docs' });
+    }
   };
+
+  const handleVerify = () => {
+    submitCode(digits.join(''));
+  };
+
+  const allFilled = digits.every((d) => d !== '');
+
+  // ── Guardar de rota ───────────────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-noir flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin-slow text-pharos-red" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-noir pt-16 md:pt-20 flex items-center justify-center px-4 py-12">
@@ -101,15 +181,15 @@ export default function VerifyEmail() {
           </h1>
           <p className="mt-2 text-sm text-steel">
             Enviamos um código de 6 dígitos para{' '}
-            <span className="font-medium text-white">{user?.email}</span>.
-            {import.meta.env.DEV && (
-              <span className="block mt-1 text-xs text-amber-400">
-                Modo DEV: veja o código no console do navegador (F12).
-              </span>
-            )}
+            <span className="font-medium text-white">{user.email}</span>.
+            Digite o código abaixo para confirmar seu cadastro.
           </p>
 
-          <div className="mt-7 flex justify-center gap-2" onPaste={handlePaste}>
+          {/* Inputs OTP */}
+          <div
+            className="mt-7 flex justify-center gap-2"
+            onPaste={handlePaste}
+          >
             {digits.map((d, i) => (
               <input
                 key={i}
@@ -122,6 +202,7 @@ export default function VerifyEmail() {
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 className="h-12 w-10 rounded-lg border border-white/15 bg-graphite/80 text-center text-xl font-bold text-white transition-all focus:border-pharos-red focus:outline-none focus:ring-1 focus:ring-pharos-red"
                 aria-label={`Dígito ${i + 1} do código`}
+                autoFocus={i === 0}
               />
             ))}
           </div>
@@ -134,7 +215,7 @@ export default function VerifyEmail() {
 
           <button
             onClick={handleVerify}
-            disabled={loading || digits.join('').length < OTP_LENGTH}
+            disabled={loading || !allFilled}
             className="btn-primary mt-6 w-full"
           >
             {loading ? (
@@ -148,17 +229,23 @@ export default function VerifyEmail() {
           </button>
 
           <button
-            onClick={sendCode}
-            disabled={resending}
-            className="mt-4 flex items-center justify-center gap-1.5 w-full text-sm text-steel transition-colors hover:text-white disabled:opacity-50"
+            onClick={handleResend}
+            disabled={resending || resendCooldown > 0}
+            className="mt-4 flex items-center justify-center gap-1.5 w-full text-sm text-steel transition-colors hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {resending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin-slow" />
             ) : (
               <RefreshCw className="h-3.5 w-3.5" />
             )}
-            Reenviar código
+            {resendCooldown > 0
+              ? `Reenviar em ${resendCooldown}s`
+              : 'Reenviar código'}
           </button>
+
+          <p className="mt-4 text-xs text-steel/60">
+            Verifique também a pasta de spam ou lixo eletrônico.
+          </p>
         </div>
       </div>
     </div>

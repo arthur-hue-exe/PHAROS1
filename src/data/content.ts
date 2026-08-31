@@ -535,24 +535,24 @@ export interface GalleryItem {
 export const galleryItems: GalleryItem[] = [
   {
     id: 'g1',
-    title: 'Treinamento Tático',
-    description: 'Prática de técnicas operacionais em ambiente controlado',
-    image: 'https://images.pexels.com/photos/29561683/pexels-photo-29561683.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    alt: 'Profissional em treinamento tático com equipamento operacional',
+    title: 'PHAROS Escola de Vigilantes',
+    description: 'Nossa sede em Aparecida de Goiânia — estrutura preparada para sua formação',
+    image: '/pharos-frente.webp',
+    alt: 'Fachada da PHAROS Escola de Vigilantes em Aparecida de Goiânia',
   },
   {
     id: 'g2',
     title: 'Sala de Aula',
     description: 'Instrução teórica com material didático atualizado',
-    image: 'https://images.pexels.com/photos/5756649/pexels-photo-5756649.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    alt: 'Adultos em sala de aula participando de instrução teórica',
+    image: '/pharos-aula.webp',
+    alt: 'Alunos em sala de aula da PHAROS durante instrução teórica',
   },
   {
     id: 'g3',
     title: 'Estande de Tiro',
     description: 'Prática de armamento e tiro com supervisão especializada',
-    image: 'https://images.pexels.com/photos/17314913/pexels-photo-17314913.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-    alt: 'Homem praticando tiro em estande ao ar livre',
+    image: '/pharos-campo.webp',
+    alt: 'Estande de tiro da PHAROS com alvos e equipamentos de proteção',
   },
   {
     id: 'g4',

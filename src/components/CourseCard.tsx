@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Tag, ArrowRight, GraduationCap } from 'lucide-react';
+import { Clock, Tag, ArrowRight, GraduationCap, XCircle } from 'lucide-react';
 import type { Course } from '@/data/content';
 import { useRouter } from '@/context/RouterContext';
 import EnrollModal from '@/components/EnrollModal';
@@ -13,10 +13,11 @@ export default function CourseCard({ course }: { course: Course }) {
   const [showModal, setShowModal] = useState(false);
 
   const handleDetails = () => navigate({ name: 'course', slug: course.slug });
+  const isAvailable = course.is_available;
 
   return (
     <>
-      {showModal && (
+      {showModal && isAvailable && (
         <EnrollModal
           courseTitle={course.title}
           onClose={() => setShowModal(false)}
@@ -24,23 +25,41 @@ export default function CourseCard({ course }: { course: Course }) {
       )}
 
       <article
-        className="group flex flex-col overflow-hidden rounded-xl border border-white/10 bg-graphite-2/60 transition-all duration-300 hover:-translate-y-1 hover:border-pharos-red/50 hover:shadow-[0_12px_40px_-12px_rgba(225,6,0,0.3)]"
+        className={`group flex flex-col overflow-hidden rounded-xl border bg-graphite-2/60 transition-all duration-300 ${
+          isAvailable
+            ? 'border-white/10 hover:-translate-y-1 hover:border-pharos-red/50 hover:shadow-[0_12px_40px_-12px_rgba(225,6,0,0.3)]'
+            : 'border-white/5 opacity-80'
+        }`}
       >
         {/* Image */}
         <div className="relative h-48 overflow-hidden">
           <img
             src={course.image}
             alt={course.imageAlt}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className={`h-full w-full object-cover transition-transform duration-500 ${
+              isAvailable ? 'group-hover:scale-105' : 'grayscale-[40%]'
+            }`}
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-graphite-2 via-graphite-2/20 to-transparent" />
+
+          {/* Badge de categoria */}
           <span className="absolute left-3 top-3 rounded-full border border-white/20 bg-noir/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
             {course.category}
           </span>
-          {course.offerBadge && (
+
+          {/* Badge de oferta — só aparece se disponível */}
+          {course.offerBadge && isAvailable && (
             <span className="absolute right-3 top-3 rounded-full bg-pharos-red px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
               {course.offerBadge}
+            </span>
+          )}
+
+          {/* Badge INDISPONÍVEL — cobre o canto superior direito */}
+          {!isAvailable && (
+            <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/70 border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70 backdrop-blur-sm">
+              <XCircle className="h-3 w-3 text-red-400" />
+              Indisponível
             </span>
           )}
         </div>
@@ -53,6 +72,13 @@ export default function CourseCard({ course }: { course: Course }) {
           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-steel">
             {course.shortDescription}
           </p>
+
+          {/* Indisponível: aviso de matrículas encerradas */}
+          {!isAvailable && (
+            <p className="mt-3 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+              Inscrições encerradas. Este curso está temporariamente indisponível.
+            </p>
+          )}
 
           <div className="mt-4 flex items-center gap-4 text-xs text-steel">
             <span className="flex items-center gap-1.5">
@@ -67,13 +93,13 @@ export default function CourseCard({ course }: { course: Course }) {
 
           {/* Price */}
           <div className="mt-5 border-t border-white/10 pt-4">
-            {course.oldPrice && (
+            {course.oldPrice && isAvailable && (
               <div className="text-xs text-steel line-through">
                 De {formatPrice(course.oldPrice)}
               </div>
             )}
             <div className="flex items-baseline gap-1">
-              <span className="font-display text-2xl font-bold text-white">
+              <span className={`font-display text-2xl font-bold ${isAvailable ? 'text-white' : 'text-steel/60'}`}>
                 {formatPrice(course.price)}
               </span>
             </div>
@@ -91,14 +117,26 @@ export default function CourseCard({ course }: { course: Course }) {
               Ver detalhes
               <ArrowRight className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-pharos-red text-white transition-colors hover:bg-pharos-red-dark"
-              aria-label={`Matricular-se em ${course.title}`}
-              title="Matricule-se já"
-            >
-              <GraduationCap className="h-4 w-4" />
-            </button>
+
+            {isAvailable ? (
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-pharos-red text-white transition-colors hover:bg-pharos-red-dark"
+                aria-label={`Matricular-se em ${course.title}`}
+                title="Matricule-se já"
+              >
+                <GraduationCap className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                disabled
+                className="flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border border-white/10 bg-white/5 text-steel/40"
+                aria-label="Matrículas encerradas"
+                title="Matrículas encerradas"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
       </article>

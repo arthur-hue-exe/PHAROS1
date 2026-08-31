@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import { courses, categoryFilters } from '@/data/content';
+import { categoryFilters } from '@/data/content';
+import { useCourses } from '@/hooks/useCourses';
 import CourseCard from '@/components/CourseCard';
+import { Loader2 } from 'lucide-react';
 
 export default function CourseCatalog() {
   const [filter, setFilter] = useState<(typeof categoryFilters)[number]>('Todos');
+  // useCourses: começa com dados estáticos e atualiza is_available do BD
+  const { courses, loading } = useCourses();
 
   const filtered = filter === 'Todos'
     ? courses
@@ -43,12 +47,26 @@ export default function CourseCatalog() {
           ))}
         </div>
 
+        {/* Indicador de sincronização com BD — só aparece brevemente */}
+        {loading && (
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-steel/60">
+            <Loader2 className="h-3 w-3 animate-spin-slow" />
+            Verificando disponibilidade...
+          </div>
+        )}
+
         {/* Grid */}
         <div className="reveal-stagger mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((course) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>
+
+        {filtered.length === 0 && !loading && (
+          <p className="mt-8 text-center text-sm text-steel">
+            Nenhum curso encontrado para esta categoria.
+          </p>
+        )}
       </div>
     </section>
   );

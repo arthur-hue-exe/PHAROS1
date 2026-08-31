@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react';
 import {
   Clock, Tag, CheckCircle2, ChevronDown, ArrowLeft, ShoppingCart,
   MessageCircle, Shield, BookOpen, Award, Target, ClipboardList,
+  XCircle, Loader2,
 } from 'lucide-react';
-import { courses, contactInfo, type Course } from '@/data/content';
+import { type Course } from '@/data/content';
+import { useCourse } from '@/hooks/useCourses';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/components/Toast';
 import { useRouter } from '@/context/RouterContext';
 import { triggerRevealScan } from '@/hooks/useScrollReveal';
 import CourseCard from '@/components/CourseCard';
 import EnrollModal from '@/components/EnrollModal';
+import { whatsappLink, whatsappCourseMessage } from '@/config/site';
+import { useCourses } from '@/hooks/useCourses';
 
 function formatPrice(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -44,7 +48,9 @@ function AccordionItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function CourseDetails({ slug }: { slug: string }) {
-  const course = courses.find((c) => c.slug === slug);
+  // Busca o curso com is_available atualizado do BD
+  const { course, loading: courseLoading } = useCourse(slug);
+  const { courses: allCourses } = useCourses();
   const { addCourse } = useCart();
   const { showToast } = useToast();
   const { navigate } = useRouter();
@@ -54,7 +60,17 @@ export default function CourseDetails({ slug }: { slug: string }) {
     triggerRevealScan();
   }, [slug]);
 
+  // ── Estado de carregamento inicial ────────────────────────────────────────
+  // useCourse começa com dados estáticos — nunca fica undefined por tempo
+  // indeterminado. O `loading` aqui é apenas para a sincronização com o BD.
   if (!course) {
+    if (courseLoading) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-noir">
+          <Loader2 className="h-8 w-8 animate-spin-slow text-pharos-red" />
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-noir px-6 text-center">
         <h1 className="font-display text-2xl font-bold text-white">Curso não encontrado</h1>
@@ -67,10 +83,12 @@ export default function CourseDetails({ slug }: { slug: string }) {
     );
   }
 
-  const related = courses.filter((c) => c.id !== course.id).slice(0, 3);
-  const waLink = `https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(
-    `Olá! Tenho interesse no curso ${course.title}.`
-  )}`;
+  const isAvailable = course.is_available;
+
+  // Link do WhatsApp contextual para este curso
+  const waLink = whatsappLink(whatsappCourseMessage(course.title));
+
+  const related = allCourses.filter((c) => c.id !== course.id).slice(0, 3);
 
   const handleAdd = () => {
     addCourse(course);
@@ -78,24 +96,26 @@ export default function CourseDetails({ slug }: { slug: string }) {
   };
 
   const handleMatricula = () => {
+    if (!isAvailable) return;
     setShowEnrollModal(true);
   };
 
   return (
     <div className="min-h-screen bg-noir pt-16 md:pt-20">
-      {showEnrollModal && (
+      {showEnrollModal && isAvailable && (
         <EnrollModal
           courseTitle={course.title}
           onClose={() => setShowEnrollModal(false)}
         />
       )}
+
       {/* Hero / breadcrumb */}
       <div className="relative border-b border-white/10 bg-graphite">
         <div className="absolute inset-0">
           <img
             src={course.image}
             alt={course.imageAlt}
-            className="h-full w-full object-cover opacity-20"
+            className={`h-full w-full object-cover ${isAvailable ? 'opacity-20' : 'opacity-10 grayscale-[60%]'}`}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-noir via-graphite/90 to-graphite/60" />
         </div>
@@ -110,6 +130,21 @@ export default function CourseDetails({ slug }: { slug: string }) {
           <span className="inline-block rounded-full border border-pharos-red/40 bg-pharos-red/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-pharos-red">
             {course.category}
           </span>
+
+          {/* Banner de indisponibilidade */}
+          {!isAvailable && (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 max-w-2xl">
+              <XCircle className="h-5 w-5 shrink-0 text-red-400" />
+              <div>
+                <div className="text-sm font-semibold text-red-400">Matrículas encerradas</div>
+                <div className="text-xs text-steel mt-0.5">
+                  Este curso encontra-se indisponível no momento, pois o prazo de matrícula já foi encerrado.
+                  Entre em contato pelo WhatsApp para saber quando as inscrições serão reabertas.
+                </div>
+              </div>
+            </div>
+          )}
+
           <h1 className="reveal mt-4 max-w-3xl font-display text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
             {course.title}
           </h1>
@@ -122,7 +157,7 @@ export default function CourseDetails({ slug }: { slug: string }) {
               <Tag className="h-4 w-4 text-pharos-red" />
               {course.modality}
             </span>
-            {course.offerBadge && (
+            {course.offerBadge && isAvailable && (
               <span className="rounded-full bg-pharos-red px-3 py-0.5 text-xs font-bold uppercase text-white">
                 {course.offerBadge}
               </span>
@@ -136,7 +171,6 @@ export default function CourseDetails({ slug }: { slug: string }) {
         <div className="grid gap-10 lg:grid-cols-3">
           {/* Main content */}
           <div className="lg:col-span-2 space-y-10">
-            {/* Description */}
             <section className="reveal">
               <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-white">
                 <BookOpen className="h-5 w-5 text-pharos-red" />
@@ -145,7 +179,6 @@ export default function CourseDetails({ slug }: { slug: string }) {
               <p className="mt-4 text-base leading-relaxed text-steel">{course.description}</p>
             </section>
 
-            {/* Objectives */}
             <section className="reveal">
               <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-white">
                 <Target className="h-5 w-5 text-pharos-red" />
@@ -161,7 +194,6 @@ export default function CourseDetails({ slug }: { slug: string }) {
               </ul>
             </section>
 
-            {/* Syllabus */}
             <section className="reveal">
               <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-white">
                 <ClipboardList className="h-5 w-5 text-pharos-red" />
@@ -182,7 +214,6 @@ export default function CourseDetails({ slug }: { slug: string }) {
               </div>
             </section>
 
-            {/* Requirements */}
             <section className="reveal">
               <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-white">
                 <Shield className="h-5 w-5 text-pharos-red" />
@@ -198,7 +229,6 @@ export default function CourseDetails({ slug }: { slug: string }) {
               </ul>
             </section>
 
-            {/* Certification */}
             <section className="reveal rounded-xl border border-pharos-red/20 bg-pharos-red/5 p-6">
               <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-white">
                 <Award className="h-5 w-5 text-pharos-red" />
@@ -207,9 +237,10 @@ export default function CourseDetails({ slug }: { slug: string }) {
               <p className="mt-3 text-sm leading-relaxed text-steel">{course.certification}</p>
             </section>
 
-            {/* FAQ */}
             <section className="reveal">
-              <h2 className="font-display text-xl font-semibold text-white">Perguntas frequentes</h2>
+              <h2 className="font-display text-xl font-semibold text-white">
+                Perguntas frequentes
+              </h2>
               <div className="mt-4 rounded-xl border border-white/10 bg-graphite/60 px-5">
                 {course.faqs.map((faq, i) => (
                   <AccordionItem key={i} q={faq.q} a={faq.a} />
@@ -222,12 +253,12 @@ export default function CourseDetails({ slug }: { slug: string }) {
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-24">
               <div className="rounded-2xl border border-white/10 bg-graphite-2/60 p-6">
-                {course.oldPrice && (
+                {course.oldPrice && isAvailable && (
                   <div className="text-sm text-steel line-through">
                     De {formatPrice(course.oldPrice)}
                   </div>
                 )}
-                <div className="font-display text-3xl font-bold text-white">
+                <div className={`font-display text-3xl font-bold ${isAvailable ? 'text-white' : 'text-steel/60'}`}>
                   {formatPrice(course.price)}
                 </div>
                 <div className="mt-1 text-sm text-steel">
@@ -251,53 +282,92 @@ export default function CourseDetails({ slug }: { slug: string }) {
                   </div>
                 </div>
 
-                <button onClick={handleMatricula} className="btn-primary mt-6 w-full">
-                  Matricule-se já
-                </button>
-                <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-secondary mt-3 w-full">
-                  <MessageCircle className="h-4 w-4" />
-                  Falar pelo WhatsApp
-                </a>
-                <button onClick={handleAdd} className="btn-ghost mt-2 w-full">
-                  <ShoppingCart className="h-4 w-4" />
-                  Adicionar ao carrinho
-                </button>
+                {isAvailable ? (
+                  <>
+                    <button onClick={handleMatricula} className="btn-primary mt-6 w-full">
+                      Matricule-se já
+                    </button>
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary mt-3 w-full"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Falar pelo WhatsApp
+                    </a>
+                    <button onClick={handleAdd} className="btn-ghost mt-2 w-full">
+                      <ShoppingCart className="h-4 w-4" />
+                      Adicionar ao carrinho
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Curso indisponível — bloqueia matrícula, mantém WhatsApp */}
+                    <button
+                      disabled
+                      className="btn-primary mt-6 w-full cursor-not-allowed opacity-40"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Inscrições encerradas
+                    </button>
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary mt-3 w-full"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Avisar quando abrir
+                    </a>
+                    <p className="mt-3 text-center text-xs text-steel">
+                      Entre em contato para saber quando as inscrições serão reabertas.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile sticky bar */}
-        <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-white/10 bg-noir/95 p-4 backdrop-blur-md lg:hidden">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="font-display text-lg font-bold text-white">
-                {formatPrice(course.price)}
-              </div>
-              <div className="text-xs text-steel">
-                {course.installments}x de {formatPrice(course.installmentValue)}
-              </div>
+        {/* Related courses */}
+        {related.length > 0 && (
+          <section className="mt-16 border-t border-white/10 pt-12">
+            <h2 className="reveal font-display text-2xl font-bold text-white sm:text-3xl">
+              Cursos relacionados
+            </h2>
+            <div className="reveal-stagger mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((c: Course) => (
+                <CourseCard key={c.id} course={c} />
+              ))}
             </div>
+          </section>
+        )}
+      </div>
+
+      {/* Mobile sticky bar */}
+      <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-white/10 bg-noir/95 p-4 backdrop-blur-md lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className={`font-display text-lg font-bold ${isAvailable ? 'text-white' : 'text-steel/60'}`}>
+              {formatPrice(course.price)}
+            </div>
+            <div className="text-xs text-steel">
+              {course.installments}x de {formatPrice(course.installmentValue)}
+            </div>
+          </div>
+          {isAvailable ? (
             <button onClick={handleMatricula} className="btn-primary flex-1 max-w-[60%]">
               Matricule-se já
             </button>
-          </div>
+          ) : (
+            <button disabled className="btn-primary flex-1 max-w-[60%] cursor-not-allowed opacity-40">
+              <XCircle className="h-4 w-4" />
+              Encerrado
+            </button>
+          )}
         </div>
       </div>
-
-      {/* Related courses */}
-      <section className="border-t border-white/10 bg-graphite py-16">
-        <div className="container-x">
-          <h2 className="reveal font-display text-2xl font-bold text-white sm:text-3xl">
-            Cursos relacionados
-          </h2>
-          <div className="reveal-stagger mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((c: Course) => (
-              <CourseCard key={c.id} course={c} />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Spacer for mobile sticky bar */}
       <div className="h-20 lg:hidden" />

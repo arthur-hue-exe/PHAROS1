@@ -1,3 +1,13 @@
+import {
+  WHATSAPP_NUMBER,
+  WHATSAPP_DISPLAY,
+  SITE_ADDRESS,
+  MAPS_QUERY,
+  SITE_EMAIL,
+  SITE_INSTAGRAM,
+  SITE_HOURS,
+} from '@/config/site';
+
 export type CourseCategory = 'Atualização' | 'Aperfeiçoamento' | 'Profissional';
 
 export interface CourseFaq {
@@ -16,6 +26,11 @@ export interface Course {
   installmentValue: number;
   oldPrice?: number;
   offerBadge?: string;
+  /**
+   * Caminho local (src/assets/courses/) ou URL externa da imagem do curso.
+   * Para substituir, altere apenas o valor aqui — ou, futuramente, via painel admin.
+   * Centralizado em src/config/courseImages.ts para facilitar troca.
+   */
   image: string;
   imageAlt: string;
   workload: string;
@@ -26,6 +41,15 @@ export interface Course {
   syllabus: string[];
   certification: string;
   faqs: CourseFaq[];
+  /**
+   * Controla a disponibilidade do curso para matrícula.
+   * - true  → DISPONÍVEL: botão "Matricule-se" habilitado
+   * - false → INDISPONÍVEL: botão desabilitado, badge vermelho exibido
+   *
+   * Em produção este valor vem do banco (tabela `courses`, coluna `is_available`).
+   * O valor aqui serve de fallback/seed inicial caso o BD ainda não tenha o registro.
+   */
+  is_available: boolean;
 }
 
 export const courses: Course[] = [
@@ -82,6 +106,7 @@ export const courses: Course[] = [
         a: 'Disponibilizamos turmas em diferentes horários. Consulte a agenda com nossa equipe de matrículas.',
       },
     ],
+    is_available: true,
   },
   {
     id: '2',
@@ -137,6 +162,7 @@ export const courses: Course[] = [
         a: 'É necessário possuir Formação de Vigilante vigente. O curso é voltado para profissionais que buscam especialização.',
       },
     ],
+    is_available: true,
   },
   {
     id: '3',
@@ -185,6 +211,7 @@ export const courses: Course[] = [
         a: 'Sim, inclui atualização de armamento e tiro defensivo como parte da grade prática.',
       },
     ],
+    is_available: true,
   },
   {
     id: '4',
@@ -233,6 +260,7 @@ export const courses: Course[] = [
         a: 'Não. Profissionais que desejam crescer na carreira e assumir posições de liderança também podem participar.',
       },
     ],
+    is_available: true,
   },
   {
     id: '5',
@@ -281,6 +309,7 @@ export const courses: Course[] = [
         a: 'Inclui prática supervisionada em estande, com foco no manuseio e manutenção.',
       },
     ],
+    is_available: true,
   },
   {
     id: '6',
@@ -329,6 +358,7 @@ export const courses: Course[] = [
         a: 'Sim, os conhecimentos são aplicáveis a centrais de monitoramento e alarme.',
       },
     ],
+    is_available: true,
   },
   {
     id: '7',
@@ -379,6 +409,7 @@ export const courses: Course[] = [
         a: 'Sim, o conteúdo é voltado para a atuação em ambiente bancário e financeiro.',
       },
     ],
+    is_available: true,
   },
 ];
 
@@ -613,14 +644,18 @@ export const differentiators: Differentiator[] = [
   },
 ];
 
+/**
+ * contactInfo — dados institucionais exibidos no frontend.
+ * Fonte de verdade: src/config/site.ts — edite apenas lá.
+ */
 export const contactInfo = {
-  address: 'Av. Anhanguera, nº 6350, Qd. 2a, Lt. 17, Setor Aeroporto, Goiânia-GO',
-  email: 'sac@goiasseguranca.com.br',
-  whatsapp: '5562000000000',
-  whatsappDisplay: '(62) 00000-0000',
-  instagram: 'pharos.escola',
-  mapsQuery: 'Av. Anhanguera, 6350, Setor Aeroporto, Goiânia-GO',
-  hours: 'Horário de atendimento: a definir.',
+  address: SITE_ADDRESS,
+  email: SITE_EMAIL,
+  whatsapp: WHATSAPP_NUMBER,
+  whatsappDisplay: WHATSAPP_DISPLAY,
+  instagram: SITE_INSTAGRAM,
+  mapsQuery: MAPS_QUERY,
+  hours: SITE_HOURS,
 };
 
 export const navLinks = [

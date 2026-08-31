@@ -1,0 +1,44 @@
+# Supabase local development configuration
+# Ref: https://supabase.com/docs/guides/cli/config
+
+[api]
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[storage]
+file_size_limit = "50MiB"
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://pharos.vercel.app"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[functions]
+# Variáveis injetadas em todas as Edge Functions durante dev local.
+# Em produção, configure via: supabase secrets set NOME=valor
+# NUNCA comite valores reais aqui.
+
+# Exemplo (substitua pelos valores reais):
+# [functions.env]
+# ADMIN_USER = "admin"
+# ADMIN_PASSWORD = "sua_senha_segura"
+# ADMIN_JWT_SECRET = "um_segredo_longo_e_aleatorio"

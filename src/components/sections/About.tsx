@@ -28,11 +28,11 @@ export default function About() {
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Image */}
           <div className="reveal reveal-left relative">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-noir flex items-center justify-center">
               <img
-                src="https://images.pexels.com/photos/37182293/pexels-photo-37182293.jpeg?auto=compress&cs=tinysrgb&h=700&w=900"
-                alt="Profissional de segurança em treinamento tático"
-                className="aspect-[4/3] w-full object-cover"
+                src="/pharos-logo.png"
+                alt="PHAROS — Escola de Vigilantes"
+                className="aspect-[4/3] w-full object-contain p-8"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-noir/80 via-transparent to-transparent" />

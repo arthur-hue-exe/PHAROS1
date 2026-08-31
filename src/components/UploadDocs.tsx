@@ -13,7 +13,7 @@ import { useRouter } from '@/context/RouterContext';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
-type DocType = 'cnh' | 'rg' | 'titulo_eleitor' | 'comprovante_residencia';
+type DocType = 'cnh' | 'rg' | 'titulo_eleitor' | 'comprovante_residencia' | 'certidao' | 'oficio';
 
 interface DocSlot {
   type: DocType;
@@ -24,17 +24,38 @@ interface DocSlot {
   errorMsg: string;
 }
 
-const initialSlots: DocSlot[] = [
+/** Slots base — exibidos para TODOS os usuários (particular e empresa) */
+const BASE_SLOTS: DocSlot[] = [
   { type: 'cnh', label: 'CNH', description: 'Carteira Nacional de Habilitação (frente e verso em uma imagem ou PDF)', file: null, status: 'idle', errorMsg: '' },
   { type: 'rg', label: 'RG', description: 'Documento de Identidade (frente e verso)', file: null, status: 'idle', errorMsg: '' },
   { type: 'titulo_eleitor', label: 'Título de Eleitor', description: 'Título de eleitor (frente e verso)', file: null, status: 'idle', errorMsg: '' },
   { type: 'comprovante_residencia', label: 'Comprovante de Residência', description: 'Conta de água, luz ou telefone com no máx. 90 dias', file: null, status: 'idle', errorMsg: '' },
+  { type: 'certidao', label: 'Certidão', description: 'Certidão exigida para matrícula (PDF ou imagem legível)', file: null, status: 'idle', errorMsg: '' },
 ];
+
+/** Slot adicional — exibido SOMENTE para conta Empresa */
+const OFICIO_SLOT: DocSlot = {
+  type: 'oficio',
+  label: 'Ofício',
+  description: 'Ofício da empresa solicitante (PDF ou imagem legível)',
+  file: null,
+  status: 'idle',
+  errorMsg: '',
+};
+
+/** Monta a lista de slots de acordo com o tipo de conta */
+function buildSlots(accountType: 'particular' | 'empresa'): DocSlot[] {
+  return accountType === 'empresa'
+    ? [...BASE_SLOTS, OFICIO_SLOT]
+    : [...BASE_SLOTS];
+}
 
 export default function UploadDocs() {
   const { user, profile, refreshProfile } = useAuth();
   const { navigate } = useRouter();
-  const [slots, setSlots] = useState<DocSlot[]>(initialSlots);
+  // Slots inicializados com base no account_type do profile.
+  // Começa com BASE_SLOTS como fallback — corrigido assim que o profile carrega.
+  const [slots, setSlots] = useState<DocSlot[]>(() => buildSlots('particular'));
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState('');
 
@@ -48,6 +69,12 @@ export default function UploadDocs() {
       navigate({ name: 'docs-sent' });
     }
   }, [user, profile, navigate]);
+
+  // Atualiza os slots quando o account_type do profile estiver disponível
+  useEffect(() => {
+    if (!profile) return;
+    setSlots(buildSlots(profile.account_type ?? 'particular'));
+  }, [profile?.account_type]);
 
   const handleFileChange = useCallback((type: DocType, file: File | null) => {
     if (!file) return;

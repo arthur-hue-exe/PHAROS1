@@ -84,6 +84,8 @@ const DOC_LABELS: Record<string, string> = {
   rg: 'RG',
   titulo_eleitor: 'Título de Eleitor',
   comprovante_residencia: 'Comprovante de Residência',
+  certidao: 'Certidão',
+  oficio: 'Ofício',
 };
 
 const ENROLLEE_STATUS_LABEL: Record<string, string> = {

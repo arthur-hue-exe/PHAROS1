@@ -33,10 +33,27 @@ double_confirm_changes = true
 enable_confirmations = true
 
 [functions]
-# verify_jwt = false: permite chamar a função sem JWT do Supabase Auth.
-# Necessário para admin-login, pois é a própria rota de autenticação.
-# As demais funções verificam o JWT admin internamente (ADMIN_JWT_SECRET).
+# ── admin-login ──────────────────────────────────────────────────────────────
+# verify_jwt = false: permite chamar sem JWT do Supabase Auth.
+# Necessário pois é a própria rota de autenticação.
 [functions.admin-login]
+verify_jwt = false
+
+# ── admin-list-users ─────────────────────────────────────────────────────────
+# verify_jwt = false: usa JWT administrativo próprio (ADMIN_JWT_SECRET),
+# não o JWT do Supabase Auth. O gateway não deve validar o token antes
+# de passar para a função — a função valida internamente.
+[functions.admin-list-users]
+verify_jwt = false
+
+# ── admin-user-docs ──────────────────────────────────────────────────────────
+# Mesmo motivo: autenticação administrativa interna via ADMIN_JWT_SECRET.
+[functions.admin-user-docs]
+verify_jwt = false
+
+# ── admin-update-course ──────────────────────────────────────────────────────
+# Mesmo motivo: autenticação administrativa interna via ADMIN_JWT_SECRET.
+[functions.admin-update-course]
 verify_jwt = false
 
 # Variáveis injetadas em todas as Edge Functions durante dev local.

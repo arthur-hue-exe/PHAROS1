@@ -22,6 +22,9 @@ import { useRouter } from '@/context/RouterContext';
 import { EDGE_BASE } from '@/lib/supabase';
 import AdminLogin from './AdminLogin';
 
+// Anon key necessária para o gateway do Supabase liberar Edge Functions com verify_jwt=false
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 interface UserRecord {
@@ -243,15 +246,25 @@ function ClientsTab({
     setError('');
     try {
       const res = await fetch(`${EDGE_BASE}/admin-list-users`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // apikey necessário para o gateway do Supabase (verify_jwt=false)
+          apikey: SUPABASE_ANON_KEY,
+        },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(
-          res.status === 401
-            ? 'Sessão expirada. Recarregue a página e faça login novamente.'
-            : data.error ?? `Erro ${res.status} ao carregar usuários.`
-        );
+        if (res.status === 401) {
+          setError('Token administrativo inválido ou expirado. Faça logout e login novamente.');
+        } else if (res.status === 403) {
+          setError('Acesso negado pela Edge Function admin-list-users.');
+        } else if (res.status === 404) {
+          setError('Edge Function admin-list-users não encontrada. Verifique se está publicada no Supabase.');
+        } else if (res.status >= 500) {
+          setError(`Erro interno na Edge Function (${res.status}). Verifique os logs no Supabase Dashboard.`);
+        } else {
+          setError(data.error ?? `Erro ${res.status} ao carregar usuários.`);
+        }
         return;
       }
       setUsers(Array.isArray(data) ? data.map((u) => ({
@@ -264,7 +277,7 @@ function ClientsTab({
     } catch {
       setError(
         navigator.onLine
-          ? 'Edge Function admin-list-users inacessível. Verifique se está publicada.'
+          ? 'Erro de rede ao chamar admin-list-users. Verifique o CORS ou a conectividade.'
           : 'Sem conexão com a internet.'
       );
     } finally {
@@ -283,7 +296,10 @@ function ClientsTab({
     setDocsLoading(true);
     try {
       const res = await fetch(`${EDGE_BASE}/admin-user-docs?userId=${u.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
       });
       const data = await res.json().catch(() => ([]));
       if (!res.ok) {

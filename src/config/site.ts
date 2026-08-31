@@ -59,6 +59,6 @@ export const MAPS_EMBED_URL = `https://www.google.com/maps?q=${encodeURIComponen
 
 export const SITE_NAME = 'PHAROS';
 export const SITE_FULL_NAME = 'PHAROS — Escola de Vigilantes';
-export const SITE_EMAIL = 'sac@goiasseguranca.com.br';
+export const SITE_EMAIL = 'Secretaria@pharosescoladevigilante.com.br';
 export const SITE_INSTAGRAM = 'pharos.escola';
 export const SITE_HOURS = 'Segunda a Sexta: 8h às 18h | Sábado: 8h às 12h';

@@ -54,9 +54,12 @@ export default function UploadDocs() {
   const { user, profile, refreshProfile } = useAuth();
   const { navigate, route } = useRouter();
 
-  // Curso passado via rota (vem do EnrollModal → CourseCard/CourseDetails)
-  const courseSlug = route.name === 'upload-docs' ? (route.courseSlug ?? null) : null;
-  const courseName = route.name === 'upload-docs' ? (route.courseName ?? null) : null;
+  // Curso passado via rota (vem do cadastro ou EnrollModal)
+  // Fallback: usa o curso já salvo no profile caso a rota tenha perdido o parâmetro
+  const routeCourseSlug = route.name === 'upload-docs' ? (route.courseSlug ?? null) : null;
+  const routeCourseName = route.name === 'upload-docs' ? (route.courseName ?? null) : null;
+  const courseSlug = routeCourseSlug ?? profile?.course_slug ?? null;
+  const courseName = routeCourseName ?? profile?.course_name ?? null;
   // Slots inicializados com base no account_type do profile.
   // Começa com BASE_SLOTS como fallback — corrigido assim que o profile carrega.
   const [slots, setSlots] = useState<DocSlot[]>(() => buildSlots('particular'));

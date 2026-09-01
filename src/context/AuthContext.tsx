@@ -129,7 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     courseSlug?: string,
     courseName?: string
   ): Promise<{ error: string | null }> => {
-    // 1. Criar conta no Auth
+    // 1. Criar conta no Auth — inclui course_slug/course_name nos metadados
+    //    para que o trigger handle_new_user possa lê-los e inserir junto ao profile.
     const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -140,19 +141,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           account_type: accountType,
           company_name: companyName ?? null,
           cnpj: cnpj ?? null,
+          course_slug: courseSlug ?? null,
+          course_name: courseName ?? null,
         },
       },
     });
 
     if (authError) return { error: authError.message };
 
-    // 2. O trigger handle_new_user cria o perfil com name/email/phone.
-    //    Precisamos atualizar account_type, company_name e cnpj em seguida.
-    //    Aguardamos brevemente para o trigger ter tempo de executar.
+    // 2. O trigger handle_new_user cria o perfil após o INSERT em auth.users.
+    //    Aguardamos a linha existir antes de fazer o UPDATE para evitar
+    //    a race condition onde UPDATE afeta 0 linhas silenciosamente.
     if (data.user) {
-      // Tenta atualizar até 3 vezes com delay crescente (trigger pode demorar ~100ms)
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        await new Promise((r) => setTimeout(r, attempt * 200));
+      const userId = data.user.id;
+      let profileCreated = false;
+
+      // Aguarda até 2 segundos pelo trigger criar o profile
+      for (let attempt = 1; attempt <= 6; attempt++) {
+        await new Promise((r) => setTimeout(r, attempt * 300)); // 300, 600, 900...
+
+        // Verificar se o profile já existe
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .single();
+
+        if (!existing) {
+          if (import.meta.env.DEV) {
+            console.warn(`[AuthContext] signUp: profile ainda não existe (tentativa ${attempt})`);
+          }
+          continue; // trigger ainda não rodou — aguarda mais
+        }
+
+        profileCreated = true;
+
+        // Profile existe — faz o UPDATE completo
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
@@ -162,16 +186,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...(courseSlug ? { course_slug: courseSlug } : {}),
             ...(courseName ? { course_name: courseName } : {}),
           })
-          .eq('id', data.user.id);
+          .eq('id', userId);
 
-        if (!updateError) break;
+        if (!updateError) {
+          break; // sucesso
+        }
 
         if (import.meta.env.DEV) {
-          console.warn(
-            `[AuthContext] signUp: tentativa ${attempt} de atualizar profile falhou:`,
-            updateError.message
-          );
+          console.warn(`[AuthContext] signUp: UPDATE falhou (tentativa ${attempt}):`, updateError.message);
         }
+      }
+
+      if (!profileCreated && import.meta.env.DEV) {
+        console.error('[AuthContext] signUp: profile não foi criado pelo trigger após 6 tentativas.');
       }
     }
 

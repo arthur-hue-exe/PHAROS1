@@ -124,7 +124,12 @@ export default function RegisterForm() {
         isEmpresa ? responsibleName : name,
         accountType,
         isEmpresa ? companyName : undefined,
-        isEmpresa ? cnpj.replace(/\D/g, '') : undefined
+        isEmpresa ? cnpj.replace(/\D/g, '') : undefined,
+        // Curso selecionado — apenas para particulares
+        !isEmpresa && selectedCourseSlug ? selectedCourseSlug : undefined,
+        !isEmpresa && selectedCourseSlug
+          ? (courses.find(c => c.slug === selectedCourseSlug)?.title ?? preSelectedCourseName)
+          : undefined,
       );
       if (err) {
         setError(translateError(err));

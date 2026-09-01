@@ -42,7 +42,9 @@ interface AuthContextValue {
     name: string,
     accountType: AccountType,
     companyName?: string,
-    cnpj?: string
+    cnpj?: string,
+    courseSlug?: string,
+    courseName?: string
   ) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -123,7 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     accountType: AccountType,
     companyName?: string,
-    cnpj?: string
+    cnpj?: string,
+    courseSlug?: string,
+    courseName?: string
   ): Promise<{ error: string | null }> => {
     // 1. Criar conta no Auth
     const { data, error: authError } = await supabase.auth.signUp({
@@ -155,6 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             account_type: accountType,
             company_name: companyName ?? null,
             cnpj: cnpj ?? null,
+            ...(courseSlug ? { course_slug: courseSlug } : {}),
+            ...(courseName ? { course_name: courseName } : {}),
           })
           .eq('id', data.user.id);
 

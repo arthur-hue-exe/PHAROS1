@@ -67,11 +67,11 @@ export default function UploadDocs() {
   useEffect(() => {
     if (!user) {
       navigate({ name: 'register' });
-    } else if (!profile?.email_verified) {
-      navigate({ name: 'verify-email' });
     } else if (profile?.documents_uploaded) {
+      // Documentos já enviados — redireciona para confirmação
       navigate({ name: 'docs-sent' });
     }
+    // Removido: bloqueio por email_verified — usuário pode enviar docs sem confirmar e-mail
   }, [user, profile, navigate]);
 
   // Atualiza os slots quando o account_type do profile estiver disponível
@@ -173,8 +173,8 @@ export default function UploadDocs() {
 
   // ── Renderização condicional APÓS todos os hooks ───────────────────────────
 
-  // Ainda carregando estado de auth — mostra spinner mínimo
-  if (!user || !profile?.email_verified || profile?.documents_uploaded) {
+  // Guard: se não autenticado ou já enviou docs — spinner enquanto redireciona
+  if (!user || profile?.documents_uploaded) {
     return (
       <div className="min-h-screen bg-noir flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin-slow text-pharos-red" />

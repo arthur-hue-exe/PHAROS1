@@ -8,7 +8,7 @@ import {
   SITE_HOURS,
 } from '@/config/site';
 
-export type CourseCategory = 'Atualização' | 'Aperfeiçoamento' | 'Profissional';
+export type CourseCategory = 'Atualização' | 'Aperfeiçoamento' | 'Extensão' | 'Profissional';
 
 export interface CourseFaq {
   q: string;
@@ -317,7 +317,7 @@ export const courses: Course[] = [
     id: '4',
     slug: 'extensao-seguranca-grandes-eventos',
     title: 'Curso de Extensão em Segurança para Eventos Sociais / Grandes Eventos',
-    category: 'Aperfeiçoamento',
+    category: 'Extensão',
     shortDescription: 'Capacitação para atuação em segurança de eventos sociais e grandes eventos. 5 dias presenciais, diurno. Consulte próximas turmas.',
     price: 500,
     installments: 3,
@@ -449,7 +449,7 @@ export const courses: Course[] = [
     id: '6',
     slug: 'extensao-supervisor-de-vigilante',
     title: 'Formação de Vigilante Supervisor',
-    category: 'Aperfeiçoamento',
+    category: 'Extensão',
     shortDescription: 'Formação para supervisores de operações de segurança. Turmas diurnas, noturnas e fins de semana. Próxima turma: 17/08/2026.',
     price: 1100,
     installments: 6,
@@ -519,9 +519,10 @@ export const courses: Course[] = [
 
 export const categoryFilters: ('Todos' | CourseCategory)[] = [
   'Todos',
+  'Profissional',
   'Atualização',
   'Aperfeiçoamento',
-  'Profissional',
+  'Extensão',
 ];
 
 export interface GalleryItem {
@@ -588,38 +589,46 @@ export interface Testimonial {
 }
 
 export const testimonials: Testimonial[] = [
+  // ─────────────────────────────────────────────────────────────────────────
+  // DEPOIMENTOS — substitua pelos reais assim que estiverem disponíveis.
+  // Fonte original: https://share.google/UTuBNGw4SlN2IJyLW
+  // O link de avaliações não pôde ser acessado automaticamente.
+  // Para inserir depoimentos reais, substitua os campos name, role, text,
+  // rating e initials abaixo com os dados reais dos alunos.
+  // Altere isDemo para false quando o depoimento for real.
+  // ─────────────────────────────────────────────────────────────────────────
   {
     id: 't1',
-    name: 'Carlos Mendes',
-    role: 'Vigilante — Segurança Bancária',
-    text: 'A estrutura da PHAROS superou minhas expectativas. A parte prática foi fundamental para minha atuação em agência. Instrutores muito experientes.',
+    name: 'Carlos M.',
+    role: 'Aluno — Formação de Vigilante',
+    text: 'Ótima escola, instrutores experientes e estrutura muito boa. Recomendo para quem quer entrar na área de segurança privada em Goiás.',
     rating: 5,
     initials: 'CM',
     isDemo: true,
   },
   {
     id: 't2',
-    name: 'Rafael Souza',
-    role: 'Operador de CFTV',
-    text: 'O curso de Monitoramento me deu confiança para atuar em central. O conteúdo é direto e a prática em equipamentos reais faz toda a diferença.',
+    name: 'Rafael S.',
+    role: 'Aluno — Atualização de Vigilante',
+    text: 'Curso muito bem organizado, conteúdo atualizado com a legislação vigente. Fiz a reciclagem aqui e não me arrependi.',
     rating: 5,
     initials: 'RS',
     isDemo: true,
   },
   {
     id: 't3',
-    name: 'Juliana Ramos',
-    role: 'Supervisora Operacional',
-    text: 'O curso de Supervisor me preparou para liderar equipe. Aprendi na prática como gerir operações e resolver conflitos no dia a dia.',
+    name: 'Juliana R.',
+    role: 'Aluna — Formação de Vigilante Supervisor',
+    text: 'Me preparou muito bem para assumir uma posição de liderança. Os instrutores têm experiência real de campo e isso faz diferença.',
     rating: 5,
     initials: 'JR',
     isDemo: true,
   },
   {
     id: 't4',
-    name: 'Marcos Antônio',
-    role: 'Segurança Pessoal Privada',
-    text: 'O aperfeiçoamento em segurança pessoal é muito completo. As simulações são realistas e os instrutores trazem experiência de campo.',
+    name: 'Marcos A.',
+    role: 'Aluno — Segurança V.I.P.',
+    text: 'Excelente treinamento. As aulas práticas são muito bem conduzidas e o ambiente é profissional. Valeu cada hora investida.',
     rating: 5,
     initials: 'MA',
     isDemo: true,

@@ -18,10 +18,7 @@ export default function EnrollModal({ courseTitle, courseSlug, onClose }: Props)
       navigate({ name: 'register' });
       return;
     }
-    if (!profile?.email_verified) {
-      navigate({ name: 'verify-email' });
-      return;
-    }
+    // Verificação de e-mail removida do fluxo obrigatório
     if (!profile?.documents_uploaded) {
       navigate({ name: 'upload-docs', courseSlug, courseName: courseTitle });
       return;

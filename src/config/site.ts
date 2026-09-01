@@ -62,3 +62,24 @@ export const SITE_FULL_NAME = 'PHAROS — Escola de Vigilantes';
 export const SITE_EMAIL = 'Secretaria@pharosescoladevigilante.com.br';
 export const SITE_INSTAGRAM = 'pharos.escola';
 export const SITE_HOURS = 'Segunda a Sexta: 8h às 18h | Sábado: 8h às 12h';
+
+// ── Avaliações Google ────────────────────────────────────────────────────────
+/**
+ * URL da página de avaliações no Google.
+ * Quando disponível, substitua pela URL direta do Google Meu Negócio da PHAROS.
+ * Esta constante é usada no QR Code da seção de avaliações e no botão "Avaliar".
+ *
+ * Para obter a URL correta:
+ *   1. Acesse Google Meu Negócio → Sua Empresa → Obter mais avaliações
+ *   2. Copie o link curto gerado pelo Google
+ *   3. Substitua o valor abaixo
+ */
+export const GOOGLE_REVIEW_URL = 'https://share.google/UTuBNGw4SlN2IJyLW';
+
+/**
+ * URL da API do Google Charts para gerar QR Code da página de avaliações.
+ * Gerado automaticamente a partir de GOOGLE_REVIEW_URL.
+ */
+export function googleReviewQrCodeUrl(size = 200): string {
+  return `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodeURIComponent(GOOGLE_REVIEW_URL)}&choe=UTF-8`;
+}

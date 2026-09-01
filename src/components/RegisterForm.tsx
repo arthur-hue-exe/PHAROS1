@@ -37,7 +37,7 @@ function translateError(msg: string): string {
   if (msg.includes('Invalid login credentials'))
     return 'E-mail ou senha incorretos.';
   if (msg.includes('Email not confirmed'))
-    return 'Confirme seu e-mail antes de entrar.';
+    return 'E-mail ou senha incorretos. Tente novamente.';
   if (msg.includes('Password should be'))
     return 'A senha deve ter ao menos 6 caracteres.';
   return msg;
@@ -72,15 +72,13 @@ export default function RegisterForm() {
   const [error, setError] = useState('');
 
   // ── Helpers de navegação pós-autenticação ─────────────────────────────────
-  function navigateAfterAuth(type: AccountType, emailVerified?: boolean, docsUploaded?: boolean) {
+  function navigateAfterAuth(type: AccountType, docsUploaded?: boolean) {
     if (type === 'empresa') {
       navigate({ name: 'company-enrollees' });
       return;
     }
-    // particular: retoma no ponto do funil
-    if (!emailVerified) {
-      navigate({ name: 'verify-email' });
-    } else if (!docsUploaded) {
+    // Particular: vai direto para upload de docs (sem bloquear por e-mail)
+    if (!docsUploaded) {
       navigate({ name: 'upload-docs' });
     } else {
       navigate({ name: 'docs-sent' });
@@ -121,9 +119,9 @@ export default function RegisterForm() {
       if (err) {
         setError(translateError(err));
       } else {
-        // Após signup, empresa vai direto para gerenciar candidatos
-        // Particular precisa verificar e-mail
-        navigateAfterAuth(accountType, false, false);
+        // Após signup bem-sucedido: vai direto para upload de docs (particular)
+        // ou painel da empresa — sem aguardar confirmação de e-mail
+        navigateAfterAuth(accountType, false);
       }
     } else {
       // Login — verifica o accountType atual do profile para decidir rota
@@ -141,12 +139,8 @@ export default function RegisterForm() {
         if (profile?.account_type === 'empresa') {
           navigate({ name: 'company-enrollees' });
         } else {
-          // Navegação particular — retoma funil no ponto correto
-          navigateAfterAuth(
-            'particular',
-            profile?.email_verified,
-            profile?.documents_uploaded
-          );
+          // Navegação particular — sem bloqueio por e-mail
+          navigateAfterAuth('particular', profile?.documents_uploaded);
         }
       }
     }

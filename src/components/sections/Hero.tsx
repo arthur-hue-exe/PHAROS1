@@ -7,7 +7,7 @@ export default function Hero() {
   };
 
   const waLink = `https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(
-    'Olá! Gostaria de falar com um especialista sobre os cursos da PHAROS.'
+    'Olá! Gostaria de falar com um Atendente sobre os cursos da PHAROS.'
   )}`;
 
   return (
@@ -66,7 +66,7 @@ export default function Hero() {
             </button>
             <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-secondary">
               <MessageCircle className="h-4 w-4" />
-              Fale com um especialista
+              Fale com um Atendente
             </a>
           </div>
 

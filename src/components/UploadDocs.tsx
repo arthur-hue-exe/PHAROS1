@@ -52,7 +52,11 @@ function buildSlots(accountType: 'particular' | 'empresa'): DocSlot[] {
 
 export default function UploadDocs() {
   const { user, profile, refreshProfile } = useAuth();
-  const { navigate } = useRouter();
+  const { navigate, route } = useRouter();
+
+  // Curso passado via rota (vem do EnrollModal → CourseCard/CourseDetails)
+  const courseSlug = route.name === 'upload-docs' ? (route.courseSlug ?? null) : null;
+  const courseName = route.name === 'upload-docs' ? (route.courseName ?? null) : null;
   // Slots inicializados com base no account_type do profile.
   // Começa com BASE_SLOTS como fallback — corrigido assim que o profile carrega.
   const [slots, setSlots] = useState<DocSlot[]>(() => buildSlots('particular'));
@@ -151,6 +155,13 @@ export default function UploadDocs() {
     const allOk = results.every(Boolean);
 
     if (allOk) {
+      // Salvar o curso escolhido no profile (apenas se foi passado via rota)
+      if (courseSlug && courseName && user) {
+        await supabase
+          .from('profiles')
+          .update({ course_slug: courseSlug, course_name: courseName })
+          .eq('id', user.id);
+      }
       await supabase.rpc('mark_documents_uploaded');
       await refreshProfile();
       navigate({ name: 'docs-sent' });
@@ -158,7 +169,7 @@ export default function UploadDocs() {
       setGlobalError('Alguns arquivos falharam. Verifique os erros e tente novamente.');
     }
     setSubmitting(false);
-  }, [slots, uploadFile, refreshProfile, navigate]);
+  }, [slots, uploadFile, refreshProfile, navigate, courseSlug, courseName, user]);
 
   // ── Renderização condicional APÓS todos os hooks ───────────────────────────
 

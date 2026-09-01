@@ -83,7 +83,8 @@ serve(async (req) => {
     .from('profiles')
     .select(
       'id, name, email, phone, email_verified, documents_uploaded, ' +
-      'documents_uploaded_at, created_at, account_type, company_name, cnpj'
+      'documents_uploaded_at, created_at, account_type, company_name, cnpj, ' +
+      'course_slug, course_name'
     )
     .order('created_at', { ascending: false });
 
@@ -124,11 +125,11 @@ serve(async (req) => {
   // ── 3. Mescla candidatos ao perfil da empresa ─────────────────────────────
   const result = profiles.map((p) => ({
     ...p,
-    // account_type pode não existir em BDs sem a migration — fallback seguro
     account_type: (p.account_type as string) ?? 'particular',
     company_name: p.company_name ?? null,
     cnpj: p.cnpj ?? null,
-    // enrollees só existem para empresas
+    course_slug: p.course_slug ?? null,
+    course_name: p.course_name ?? null,
     enrollees: p.account_type === 'empresa' ? (enrolleesMap[p.id] ?? []) : [],
   }));
 

@@ -36,11 +36,11 @@ interface UserRecord {
   documents_uploaded: boolean;
   documents_uploaded_at: string | null;
   created_at: string;
-  /** 'particular' | 'empresa' — fallback 'particular' para BDs sem migration */
   account_type: 'particular' | 'empresa';
   company_name: string | null;
   cnpj: string | null;
-  /** Candidatos vinculados — presente apenas quando account_type === 'empresa' */
+  course_slug: string | null;
+  course_name: string | null;
   enrollees: EnrolleeRecord[];
 }
 
@@ -222,8 +222,42 @@ function TabButton({
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// ABA: CLIENTES
+// ABA: CLIENTES — organizada por curso
 // ════════════════════════════════════════════════════════════════════════════════
+
+/** Agrupa usuários pelo curso (para particulares) ou por vários cursos (para empresas via enrollees) */
+function groupByCourse(users: UserRecord[]): Map<string, { courseName: string; users: UserRecord[] }> {
+  const map = new Map<string, { courseName: string; users: UserRecord[] }>();
+
+  const addTo = (slug: string, name: string, u: UserRecord) => {
+    if (!map.has(slug)) map.set(slug, { courseName: name, users: [] });
+    map.get(slug)!.users.push(u);
+  };
+
+  for (const u of users) {
+    if (u.account_type === 'empresa') {
+      // Empresa pode ter candidatos em vários cursos
+      const slugs = new Set<string>();
+      for (const e of u.enrollees) {
+        const slug = e.course_slug ?? '__sem_curso__';
+        const name = e.course ?? 'Curso não informado';
+        if (!slugs.has(slug)) { slugs.add(slug); addTo(slug, name, u); }
+      }
+      if (u.enrollees.length === 0) addTo('__sem_curso__', 'Curso não informado', u);
+    } else {
+      const slug = u.course_slug ?? '__sem_curso__';
+      const name = u.course_name ?? 'Curso não informado';
+      addTo(slug, name, u);
+    }
+  }
+
+  // Ordena: sem_curso por último, resto alfabético
+  return new Map([...map.entries()].sort(([a], [b]) => {
+    if (a === '__sem_curso__') return 1;
+    if (b === '__sem_curso__') return -1;
+    return map.get(a)!.courseName.localeCompare(map.get(b)!.courseName, 'pt-BR');
+  }));
+}
 
 function ClientsTab({
   token,
@@ -236,11 +270,14 @@ function ClientsTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [courseFilter, setCourseFilter] = useState('');
+  const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [docs, setDocs] = useState<DocRecord[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
   const [docsError, setDocsError] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // ── Busca usuários ──────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
@@ -248,40 +285,35 @@ function ClientsTab({
     setError('');
     try {
       const res = await fetch(`${EDGE_BASE}/admin-list-users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // apikey necessário para o gateway do Supabase (verify_jwt=false)
-          apikey: SUPABASE_ANON_KEY,
-        },
+        headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (res.status === 401) {
-          setError('Token administrativo inválido ou expirado. Faça logout e login novamente.');
-        } else if (res.status === 403) {
-          setError('Acesso negado pela Edge Function admin-list-users.');
-        } else if (res.status === 404) {
-          setError('Edge Function admin-list-users não encontrada. Verifique se está publicada no Supabase.');
-        } else if (res.status >= 500) {
-          setError(`Erro interno na Edge Function (${res.status}). Verifique os logs no Supabase Dashboard.`);
-        } else {
-          setError(data.error ?? `Erro ${res.status} ao carregar usuários.`);
-        }
+        if (res.status === 401) setError('Token inválido ou expirado. Faça logout e login novamente.');
+        else if (res.status === 404) setError('Edge Function admin-list-users não encontrada.');
+        else if (res.status >= 500) setError(`Erro interno (${res.status}). Verifique os logs no Supabase.`);
+        else setError(data.error ?? `Erro ${res.status} ao carregar usuários.`);
         return;
       }
-      setUsers(Array.isArray(data) ? data.map((u) => ({
+      const normalized: UserRecord[] = Array.isArray(data) ? data.map((u) => ({
         ...u,
         account_type: (u.account_type as 'particular' | 'empresa') ?? 'particular',
         company_name: u.company_name ?? null,
         cnpj: u.cnpj ?? null,
+        course_slug: u.course_slug ?? null,
+        course_name: u.course_name ?? null,
         enrollees: Array.isArray(u.enrollees) ? u.enrollees : [],
-      })) : []);
+      })) : [];
+      setUsers(normalized);
+      // Expande todos os grupos ao carregar pela primeira vez
+      const slugs = new Set<string>();
+      normalized.forEach(u => {
+        if (u.account_type === 'empresa') u.enrollees.forEach(e => slugs.add(e.course_slug ?? '__sem_curso__'));
+        else slugs.add(u.course_slug ?? '__sem_curso__');
+      });
+      setExpandedCourses(slugs);
     } catch {
-      setError(
-        navigator.onLine
-          ? 'Erro de rede ao chamar admin-list-users. Verifique o CORS ou a conectividade.'
-          : 'Sem conexão com a internet.'
-      );
+      setError(navigator.onLine ? 'Erro de rede ao chamar admin-list-users.' : 'Sem conexão com a internet.');
     } finally {
       setLoading(false);
     }
@@ -298,18 +330,11 @@ function ClientsTab({
     setDocsLoading(true);
     try {
       const res = await fetch(`${EDGE_BASE}/admin-user-docs?userId=${u.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_ANON_KEY,
-        },
+        headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
       });
       const data = await res.json().catch(() => ([]));
-      if (!res.ok) {
-        setDocsError(data.error ?? 'Erro ao carregar documentos.');
-        setDocs([]);
-      } else {
-        setDocs(Array.isArray(data) ? data : []);
-      }
+      if (!res.ok) { setDocsError(data.error ?? 'Erro ao carregar documentos.'); setDocs([]); }
+      else setDocs(Array.isArray(data) ? data : []);
     } catch {
       setDocsError('Erro de rede ao carregar documentos.');
       setDocs([]);
@@ -325,30 +350,60 @@ function ClientsTab({
     navigate({ name: 'admin' });
   };
 
-  // ── Download de documento ───────────────────────────────────────────────────
-  const handleDownload = async (doc: DocRecord) => {
+  // ── Download individual ─────────────────────────────────────────────────────
+  const handleDownload = (doc: DocRecord) => {
     if (!doc.download_url) return;
     setDownloadingId(doc.id);
-    try {
-      // Abre em nova aba — o header Content-Disposition: attachment força o download
-      window.open(doc.download_url, '_blank', 'noopener,noreferrer');
-    } finally {
-      setTimeout(() => setDownloadingId(null), 1500);
-    }
+    window.open(doc.download_url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => setDownloadingId(null), 1500);
   };
 
-  // ── Filtro de busca ─────────────────────────────────────────────────────────
+  // ── Baixar todos (abre cada URL em sequência) ───────────────────────────────
+  const handleDownloadAll = async () => {
+    if (!selectedUser || docsLoading) return;
+    const validDocs = docs.filter(d => d.download_url);
+    if (validDocs.length === 0) return;
+    setDownloadingAll(true);
+    // Abre cada URL com pequeno delay para não bloquear o browser
+    for (let i = 0; i < validDocs.length; i++) {
+      setTimeout(() => {
+        window.open(validDocs[i].download_url!, '_blank', 'noopener,noreferrer');
+      }, i * 400);
+    }
+    setTimeout(() => setDownloadingAll(false), validDocs.length * 400 + 500);
+  };
+
+  // ── Filtro de busca e curso ─────────────────────────────────────────────────
   const filtered = users.filter((u) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
+    const q = search.toLowerCase().trim();
+    const matchesSearch = !q || (
       (u.name ?? '').toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
-      (u.phone ?? '').includes(q)
+      (u.phone ?? '').includes(q) ||
+      (u.company_name ?? '').toLowerCase().includes(q) ||
+      (u.course_name ?? '').toLowerCase().includes(q) ||
+      u.enrollees.some(e => e.name.toLowerCase().includes(q) || (e.cpf ?? '').includes(q))
     );
+    const matchesCourse = !courseFilter || (
+      u.course_slug === courseFilter ||
+      u.enrollees.some(e => e.course_slug === courseFilter)
+    );
+    return matchesSearch && matchesCourse;
   });
 
-  // ── Renderização ────────────────────────────────────────────────────────────
+  const grouped = groupByCourse(filtered);
+
+  // Lista de cursos únicos para o select de filtro
+  const allCourses = Array.from(groupByCourse(users).entries()).map(([slug, { courseName }]) => ({ slug, courseName }));
+
+  const toggleCourse = (slug: string) =>
+    setExpandedCourses(prev => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug); else next.add(slug);
+      return next;
+    });
+
+  // ── Renderização: detalhe do usuário ────────────────────────────────────────
   if (selectedUser) {
     return (
       <UserDetail
@@ -357,27 +412,40 @@ function ClientsTab({
         docsLoading={docsLoading}
         docsError={docsError}
         downloadingId={downloadingId}
+        downloadingAll={downloadingAll}
         onDownload={handleDownload}
+        onDownloadAll={handleDownloadAll}
         onBack={closeUser}
       />
     );
   }
 
+  // ── Renderização: lista por curso ───────────────────────────────────────────
   return (
     <div>
-      {/* Header */}
+      {/* Cabeçalho + busca + filtro */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-pharos-red" />
-          <h2 className="font-display text-xl font-bold text-white">Clientes</h2>
+          <h2 className="font-display text-xl font-bold text-white">Clientes por Curso</h2>
           {!loading && (
             <span className="rounded-full bg-pharos-red/10 border border-pharos-red/20 px-2 py-0.5 text-xs font-bold text-pharos-red">
-              {filtered.length}
-              {search && users.length !== filtered.length && ` / ${users.length}`}
+              {filtered.length}{users.length !== filtered.length && ` / ${users.length}`}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Filtro por curso */}
+          <select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="input-field py-2 text-sm max-w-[180px]"
+          >
+            <option value="">Todos os cursos</option>
+            {allCourses.map(({ slug, courseName }) => (
+              <option key={slug} value={slug}>{courseName}</option>
+            ))}
+          </select>
           {/* Busca */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-steel pointer-events-none" />
@@ -385,14 +453,11 @@ function ClientsTab({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou e-mail..."
-              className="input-field pl-9 pr-3 py-2 text-sm w-56"
+              placeholder="Nome, e-mail, CPF..."
+              className="input-field pl-9 pr-3 py-2 text-sm w-48"
             />
             {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-steel hover:text-white"
-              >
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-steel hover:text-white">
                 <XCircle className="h-3.5 w-3.5" />
               </button>
             )}
@@ -401,7 +466,6 @@ function ClientsTab({
             onClick={fetchUsers}
             disabled={loading}
             className="flex items-center gap-1.5 rounded-md border border-white/15 px-3 py-2 text-xs text-steel hover:text-white hover:border-white/30 transition-colors disabled:opacity-50"
-            title="Atualizar lista"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Atualizar</span>
@@ -409,89 +473,97 @@ function ClientsTab({
         </div>
       </div>
 
-      {/* Estados */}
+      {/* Estados de carregamento e erro */}
       {loading ? (
         <div className="flex items-center gap-2 text-steel py-8">
-          <Loader2 className="h-5 w-5 animate-spin-slow" />
-          Carregando clientes...
+          <Loader2 className="h-5 w-5 animate-spin-slow" />Carregando clientes...
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-400">
-          <AlertCircle className="mb-2 h-5 w-5" />
-          {error}
+          <AlertCircle className="mb-2 h-5 w-5" />{error}
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-steel py-8">
-          {search ? 'Nenhum cliente encontrado para esta busca.' : 'Nenhum cliente cadastrado ainda.'}
+          {search || courseFilter ? 'Nenhum cliente encontrado para este filtro.' : 'Nenhum cliente cadastrado ainda.'}
         </p>
       ) : (
-        <div className="rounded-xl border border-white/10 bg-graphite-2/60 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 bg-graphite/60">
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-steel">
-                    Cliente
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-steel hidden md:table-cell">
-                    E-mail
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-steel hidden lg:table-cell">
-                    Telefone
-                  </th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-steel">
-                    Tipo
-                  </th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-steel">
-                    Status
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">
-                    Cadastro
-                  </th>
-                  <th className="px-3 py-3 w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filtered.map((u) => (
-                  <tr
-                    key={u.id}
-                    onClick={() => openUser(u)}
-                    className="cursor-pointer transition-colors hover:bg-white/5"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pharos-red/20 font-display text-xs font-bold text-pharos-red">
-                          {(u.name ?? u.email).charAt(0).toUpperCase()}
+        /* ── Grupos por curso ── */
+        <div className="space-y-3">
+          {[...grouped.entries()].map(([slug, { courseName, users: groupUsers }]) => {
+            const isExpanded = expandedCourses.has(slug);
+            const completeCount = groupUsers.filter(u => u.documents_uploaded).length;
+            return (
+              <div key={slug} className="rounded-xl border border-white/10 bg-graphite-2/60 overflow-hidden">
+                {/* Cabeçalho do grupo */}
+                <button
+                  onClick={() => toggleCourse(slug)}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="h-4 w-4 text-pharos-red shrink-0" />
+                    <span className="font-display text-sm font-semibold text-white text-left">{courseName}</span>
+                    <span className="rounded-full bg-pharos-red/10 border border-pharos-red/20 px-2 py-0.5 text-[10px] font-bold text-pharos-red">
+                      {groupUsers.length} aluno{groupUsers.length !== 1 ? 's' : ''}
+                    </span>
+                    {completeCount > 0 && (
+                      <span className="rounded-full bg-green-500/10 border border-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                        {completeCount} completo{completeCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-steel transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+
+                {/* Alunos do grupo */}
+                {isExpanded && (
+                  <div className="border-t border-white/10 divide-y divide-white/5">
+                    {groupUsers.map((u) => {
+                      // Conta documentos esperados por tipo de conta
+                      const expectedDocs = u.account_type === 'empresa' ? 6 : 5;
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => openUser(u)}
+                          className="flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-white/5 transition-colors"
+                        >
+                          {/* Avatar */}
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pharos-red/20 font-display text-xs font-bold text-pharos-red">
+                            {(u.name ?? u.email).charAt(0).toUpperCase()}
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium text-white truncate">{u.name ?? '—'}</span>
+                              <AccountTypeBadge accountType={u.account_type} />
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                              <span className="text-xs text-steel truncate">{u.email}</span>
+                              {u.account_type === 'empresa' && u.company_name && (
+                                <span className="text-xs text-pharos-red/80 truncate">{u.company_name}</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Status docs */}
+                          <div className="shrink-0 text-right">
+                            {u.documents_uploaded ? (
+                              <span className="text-xs font-semibold text-green-400">
+                                Docs: {expectedDocs}/{expectedDocs}
+                              </span>
+                            ) : u.email_verified ? (
+                              <span className="text-xs font-semibold text-amber-400">Pendente</span>
+                            ) : (
+                              <span className="text-xs text-steel">Não verificado</span>
+                            )}
+                          </div>
+                          <Eye className="h-4 w-4 text-steel/50 shrink-0" />
                         </div>
-                        <div>
-                          <span className="font-medium text-white">{u.name ?? '—'}</span>
-                          {u.account_type === 'empresa' && u.company_name && (
-                            <div className="text-xs text-steel truncate max-w-[140px]">{u.company_name}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-steel hidden md:table-cell">{u.email}</td>
-                    <td className="px-5 py-4 text-steel hidden lg:table-cell">
-                      {u.phone ?? '—'}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <AccountTypeBadge accountType={u.account_type} />
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <UserStatusBadge user={u} />
-                    </td>
-                    <td className="px-5 py-4 text-xs text-steel hidden sm:table-cell">
-                      {new Date(u.created_at).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-3 py-4">
-                      <Eye className="h-4 w-4 text-steel" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -506,7 +578,9 @@ function UserDetail({
   docsLoading,
   docsError,
   downloadingId,
+  downloadingAll,
   onDownload,
+  onDownloadAll,
   onBack,
 }: {
   user: UserRecord;
@@ -514,17 +588,19 @@ function UserDetail({
   docsLoading: boolean;
   docsError: string;
   downloadingId: string | null;
+  downloadingAll: boolean;
   onDownload: (doc: DocRecord) => void;
+  onDownloadAll: () => void;
   onBack: () => void;
 }) {
+  const courseName = user.account_type === 'particular'
+    ? (user.course_name ?? 'Curso não informado')
+    : null; // empresas têm curso por candidato
+
   return (
     <div className="max-w-2xl">
-      <button
-        onClick={onBack}
-        className="mb-5 flex items-center gap-1.5 text-sm text-steel hover:text-white transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para lista
+      <button onClick={onBack} className="mb-5 flex items-center gap-1.5 text-sm text-steel hover:text-white transition-colors">
+        <ArrowLeft className="h-4 w-4" />Voltar para lista
       </button>
 
       {/* Card do usuário */}
@@ -533,17 +609,21 @@ function UserDetail({
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pharos-red/20 font-display text-lg font-bold text-pharos-red">
             {(user.name ?? user.email).charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-display text-xl font-bold text-white truncate">
-                {user.name ?? '—'}
-              </h2>
+              <h2 className="font-display text-xl font-bold text-white truncate">{user.name ?? '—'}</h2>
               <AccountTypeBadge accountType={user.account_type} />
             </div>
             {user.account_type === 'empresa' && user.company_name && (
               <p className="text-sm font-semibold text-pharos-red">{user.company_name}</p>
             )}
-            <p className="text-sm text-steel">{user.email}</p>
+            {courseName && (
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-steel">
+                <BookOpen className="h-3.5 w-3.5 text-pharos-red shrink-0" />
+                <span className="font-medium text-white">{courseName}</span>
+              </p>
+            )}
+            <p className="text-sm text-steel mt-0.5">{user.email}</p>
             {user.phone && <p className="text-sm text-steel">{user.phone}</p>}
             {user.cnpj && <p className="text-xs text-steel/70">CNPJ: {user.cnpj}</p>}
           </div>
@@ -555,87 +635,72 @@ function UserDetail({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-4 text-xs text-steel/70">
-          <span>
-            Cadastrado em{' '}
-            {new Date(user.created_at).toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </span>
+          <span>Cadastrado em {new Date(user.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
           {user.documents_uploaded_at && (
-            <span>
-              Docs enviados em{' '}
-              {new Date(user.documents_uploaded_at).toLocaleDateString('pt-BR')}
-            </span>
+            <span>Docs enviados em {new Date(user.documents_uploaded_at).toLocaleDateString('pt-BR')}</span>
           )}
         </div>
       </div>
 
       {/* Documentos */}
-      <h3 className="mt-7 flex items-center gap-2 font-display text-lg font-semibold text-white">
-        <FileText className="h-5 w-5 text-pharos-red" />
-        Documentos enviados
-      </h3>
+      <div className="mt-7 flex items-center justify-between gap-3 flex-wrap">
+        <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+          <FileText className="h-5 w-5 text-pharos-red" />
+          Documentos enviados
+          {!docsLoading && docs.length > 0 && (
+            <span className="text-xs font-normal text-steel">({docs.length} arquivo{docs.length !== 1 ? 's' : ''})</span>
+          )}
+        </h3>
+        {/* Baixar todos */}
+        {!docsLoading && docs.filter(d => d.download_url).length > 1 && (
+          <button
+            onClick={onDownloadAll}
+            disabled={downloadingAll}
+            className="flex items-center gap-1.5 rounded-md bg-pharos-red px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-pharos-red-dark disabled:opacity-60"
+          >
+            {downloadingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin-slow" /> : <Download className="h-3.5 w-3.5" />}
+            Baixar todos
+          </button>
+        )}
+      </div>
 
       {docsLoading ? (
-        <div className="mt-4 flex items-center gap-2 text-steel">
-          <Loader2 className="h-4 w-4 animate-spin-slow" />
-          Carregando documentos...
-        </div>
+        <div className="mt-4 flex items-center gap-2 text-steel"><Loader2 className="h-4 w-4 animate-spin-slow" />Carregando documentos...</div>
       ) : docsError ? (
-        <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-          {docsError}
-        </div>
+        <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{docsError}</div>
       ) : docs.length === 0 ? (
         <p className="mt-4 text-sm text-steel">Nenhum documento enviado ainda.</p>
       ) : (
         <div className="mt-4 space-y-3">
           {docs.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-graphite-2/60 p-4 gap-4"
-            >
+            <div key={doc.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-graphite-2/60 p-4 gap-4">
               <div className="min-w-0 flex-1">
-                <div className="font-display text-sm font-semibold text-white">
-                  {DOC_LABELS[doc.document_type] ?? doc.document_type}
-                </div>
-                <div className="text-xs text-steel truncate">{doc.file_name}</div>
-                <div className="text-xs text-steel/60 mt-0.5">
-                  {doc.file_size
-                    ? `${(doc.file_size / 1024).toFixed(0)} KB · `
-                    : ''}
-                  {new Date(doc.uploaded_at).toLocaleDateString('pt-BR')}
-                  {' · '}
-                  <span className="uppercase">
-                    {doc.mime_type?.includes('pdf')
-                      ? 'PDF'
-                      : doc.mime_type?.split('/')[1]?.toUpperCase() ?? 'Arquivo'}
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0" />
+                  <span className="font-display text-sm font-semibold text-white">
+                    {DOC_LABELS[doc.document_type] ?? doc.document_type}
                   </span>
                 </div>
-                {doc.download_error && (
-                  <div className="text-xs text-red-400 mt-1">{doc.download_error}</div>
-                )}
+                <div className="text-xs text-steel truncate mt-0.5">{doc.file_name}</div>
+                <div className="text-xs text-steel/60 mt-0.5">
+                  {doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB · ` : ''}
+                  {new Date(doc.uploaded_at).toLocaleDateString('pt-BR')} · {' '}
+                  <span className="uppercase">{doc.mime_type?.includes('pdf') ? 'PDF' : doc.mime_type?.split('/')[1]?.toUpperCase() ?? 'Arquivo'}</span>
+                </div>
+                {doc.download_error && <div className="text-xs text-red-400 mt-1">{doc.download_error}</div>}
               </div>
-
               {doc.download_url ? (
                 <button
                   onClick={() => onDownload(doc)}
                   disabled={downloadingId === doc.id}
                   className="flex shrink-0 items-center gap-1.5 rounded-md bg-pharos-red/10 border border-pharos-red/30 px-3 py-2 text-xs font-semibold text-pharos-red transition-colors hover:bg-pharos-red hover:text-white disabled:opacity-60"
-                  title={`Baixar ${doc.file_name}`}
                 >
-                  {downloadingId === doc.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin-slow" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" />
-                  )}
+                  {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin-slow" /> : <Download className="h-3.5 w-3.5" />}
                   <span className="hidden sm:inline">Baixar</span>
                 </button>
               ) : (
                 <span className="shrink-0 flex items-center gap-1 text-xs text-steel/50">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  URL indisponível
+                  <ExternalLink className="h-3.5 w-3.5" />URL indisponível
                 </span>
               )}
             </div>
@@ -643,7 +708,7 @@ function UserDetail({
         </div>
       )}
 
-      {/* ── Seção de candidatos — só aparece para empresas ── */}
+      {/* Candidatos (empresas) */}
       {user.account_type === 'empresa' && (
         <EnrolleesSection enrollees={user.enrollees} />
       )}

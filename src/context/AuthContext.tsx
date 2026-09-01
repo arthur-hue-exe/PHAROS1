@@ -24,8 +24,10 @@ export interface Profile {
   account_type: AccountType;
   /** Razão social / nome fantasia — preenchido apenas para empresas */
   company_name: string | null;
-  /** CNPJ formatado — preenchido apenas para empresas */
-  cnpj: string | null;
+  /** Slug do curso escolhido (apenas particulares) */
+  course_slug: string | null;
+  /** Nome do curso escolhido (apenas particulares) */
+  course_name: string | null;
 }
 
 interface AuthContextValue {
@@ -52,7 +54,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const PROFILE_SELECT =
-  'id, name, email, phone, email_verified, documents_uploaded, account_type, company_name, cnpj';
+  'id, name, email, phone, email_verified, documents_uploaded, account_type, company_name, cnpj, course_slug, course_name';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -77,10 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) {
       setProfile({
         ...data,
-        // account_type pode não existir antes da migration — fallback seguro
         account_type: (data.account_type as AccountType) ?? 'particular',
         company_name: data.company_name ?? null,
         cnpj: data.cnpj ?? null,
+        course_slug: data.course_slug ?? null,
+        course_name: data.course_name ?? null,
       } as Profile);
     }
   }, []);

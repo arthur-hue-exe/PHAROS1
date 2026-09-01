@@ -20,6 +20,7 @@ export default function CourseCard({ course }: { course: Course }) {
       {showModal && isAvailable && (
         <EnrollModal
           courseTitle={course.title}
+          courseSlug={course.slug}
           onClose={() => setShowModal(false)}
         />
       )}

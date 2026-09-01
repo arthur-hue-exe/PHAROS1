@@ -8,7 +8,7 @@ export type Route =
   | { name: 'checkout' }
   | { name: 'register' }
   | { name: 'verify-email' }
-  | { name: 'upload-docs' }
+  | { name: 'upload-docs'; courseSlug?: string; courseName?: string }
   | { name: 'docs-sent' }
   | { name: 'company-enrollees' }
   | { name: 'admin' }

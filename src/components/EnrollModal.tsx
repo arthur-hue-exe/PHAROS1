@@ -4,10 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 
 interface Props {
   courseTitle: string;
+  courseSlug?: string;
   onClose: () => void;
 }
 
-export default function EnrollModal({ courseTitle, onClose }: Props) {
+export default function EnrollModal({ courseTitle, courseSlug, onClose }: Props) {
   const { navigate } = useRouter();
   const { user, profile } = useAuth();
 
@@ -22,7 +23,7 @@ export default function EnrollModal({ courseTitle, onClose }: Props) {
       return;
     }
     if (!profile?.documents_uploaded) {
-      navigate({ name: 'upload-docs' });
+      navigate({ name: 'upload-docs', courseSlug, courseName: courseTitle });
       return;
     }
     navigate({ name: 'docs-sent' });

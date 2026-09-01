@@ -105,6 +105,7 @@ export default function CourseDetails({ slug }: { slug: string }) {
       {showEnrollModal && isAvailable && (
         <EnrollModal
           courseTitle={course.title}
+          courseSlug={course.slug}
           onClose={() => setShowEnrollModal(false)}
         />
       )}

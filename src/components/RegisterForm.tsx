@@ -129,8 +129,9 @@ export default function RegisterForm() {
       if (err) {
         setError(translateError(err));
       } else {
-        // Após signup bem-sucedido: vai direto para upload de docs (particular)
-        // ou painel da empresa — sem aguardar confirmação de e-mail
+        // Com enable_confirmations=false o Supabase autentica imediatamente.
+        // Aguarda um tick para o onAuthStateChange + fetchProfile completar.
+        await new Promise((r) => setTimeout(r, 400));
         navigateAfterAuth(accountType, false);
       }
     } else {

@@ -6,7 +6,7 @@ export type Route =
   | { name: 'contact' }
   | { name: 'cart' }
   | { name: 'checkout' }
-  | { name: 'register' }
+  | { name: 'register'; courseSlug?: string; courseName?: string }
   | { name: 'verify-email' }
   | { name: 'upload-docs'; courseSlug?: string; courseName?: string }
   | { name: 'docs-sent' }

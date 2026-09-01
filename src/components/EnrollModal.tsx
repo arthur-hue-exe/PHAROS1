@@ -15,7 +15,8 @@ export default function EnrollModal({ courseTitle, courseSlug, onClose }: Props)
   const handleConfirm = () => {
     onClose();
     if (!user) {
-      navigate({ name: 'register' });
+      // Usuário não logado → vai direto para cadastro com o curso pré-selecionado
+      navigate({ name: 'register', courseSlug, courseName: courseTitle });
       return;
     }
     // Verificação de e-mail removida do fluxo obrigatório
@@ -62,11 +63,11 @@ export default function EnrollModal({ courseTitle, courseSlug, onClose }: Props)
           </li>
           <li className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-pharos-red" />
-            Validação do e-mail via código OTP
+            Seleção do curso desejado
           </li>
           <li className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-pharos-red" />
-            Envio de documentos: CNH, RG, Título de Eleitor e Comprovante de Residência
+            Envio de documentos: CNH, RG, Título de Eleitor, Comprovante e Certidão
           </li>
         </ul>
 

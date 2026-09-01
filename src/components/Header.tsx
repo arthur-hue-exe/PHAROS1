@@ -41,10 +41,16 @@ export default function Header() {
 
   const handleMatricula = () => {
     setMenuOpen(false);
-    navigate({ name: 'home' });
-    setTimeout(() => {
-      document.querySelector('#cursos')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    if (!user) {
+      // Usuário não logado → vai para cadastro (com select de cursos)
+      navigate({ name: 'register' });
+    } else {
+      // Logado → vai para a seção de cursos para escolher
+      navigate({ name: 'home' });
+      setTimeout(() => {
+        document.querySelector('#cursos')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   };
 
   const handleSignOut = async () => {

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth, type AccountType } from '@/context/AuthContext';
 import { useRouter } from '@/context/RouterContext';
+import { courses } from '@/data/content';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,11 @@ function translateError(msg: string): string {
 
 export default function RegisterForm() {
   const { signUp, signIn, profile } = useAuth();
-  const { navigate } = useRouter();
+  const { navigate, route } = useRouter();
+
+  // Curso pré-selecionado vindo da rota (quando clica "Matricule-se" em um curso)
+  const preSelectedCourseSlug = route.name === 'register' ? (route.courseSlug ?? '') : '';
+  const preSelectedCourseName = route.name === 'register' ? (route.courseName ?? '') : '';
 
   // ── Estado ────────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<'register' | 'login'>('register');
@@ -71,15 +76,20 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Curso de interesse — pré-preenchido quando vem de "Matricule-se"
+  const [selectedCourseSlug, setSelectedCourseSlug] = useState(preSelectedCourseSlug);
+
   // ── Helpers de navegação pós-autenticação ─────────────────────────────────
   function navigateAfterAuth(type: AccountType, docsUploaded?: boolean) {
     if (type === 'empresa') {
       navigate({ name: 'company-enrollees' });
       return;
     }
-    // Particular: vai direto para upload de docs (sem bloquear por e-mail)
+    // Particular: vai direto para upload de docs com o curso selecionado
     if (!docsUploaded) {
-      navigate({ name: 'upload-docs' });
+      const slug = selectedCourseSlug || preSelectedCourseSlug || undefined;
+      const name = slug ? (courses.find(c => c.slug === slug)?.title ?? preSelectedCourseName) : undefined;
+      navigate({ name: 'upload-docs', courseSlug: slug, courseName: name });
     } else {
       navigate({ name: 'docs-sent' });
     }
@@ -261,6 +271,36 @@ export default function RegisterForm() {
                     placeholder="(62) 99999-9999"
                     required
                   />
+                </div>
+                {/* Curso de interesse */}
+                <div>
+                  <label className="input-label">
+                    Curso de interesse
+                    {preSelectedCourseName && (
+                      <span className="ml-1 normal-case font-normal text-pharos-red">
+                        — pré-selecionado
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={selectedCourseSlug}
+                    onChange={(e) => setSelectedCourseSlug(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Selecione um curso (opcional)</option>
+                    {courses
+                      .filter((c) => c.is_available)
+                      .map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.title}
+                        </option>
+                      ))}
+                  </select>
+                  {selectedCourseSlug && (
+                    <p className="mt-1 text-xs text-steel/70">
+                      Curso selecionado: <span className="text-white">{courses.find(c => c.slug === selectedCourseSlug)?.title}</span>
+                    </p>
+                  )}
                 </div>
               </>
             )}

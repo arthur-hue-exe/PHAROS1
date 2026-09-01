@@ -1,38 +1,43 @@
 /**
  * ReviewCTA — seção de incentivo a avaliações Google.
  *
- * O QR Code é gerado via Google Charts API a partir de GOOGLE_REVIEW_URL.
- * Para alterar a URL, edite apenas src/config/site.ts → GOOGLE_REVIEW_URL.
+ * O QR Code é a imagem estática /qrcode-avaliacoes.png (público/pasta public).
+ * A URL de destino está centralizada em src/config/site.ts → GOOGLE_REVIEW_URL.
+ * Para trocar o QR Code: substitua public/qrcode-avaliacoes.png por uma nova imagem.
  */
 import { Star, QrCode as QrCodeIcon } from 'lucide-react';
-import { GOOGLE_REVIEW_URL, googleReviewQrCodeUrl } from '@/config/site';
+import { GOOGLE_REVIEW_URL } from '@/config/site';
 
 export default function ReviewCTA() {
-  const qrUrl = googleReviewQrCodeUrl(180);
-
   return (
     <section className="relative border-t border-white/5 bg-graphite py-16 md:py-20">
       <div className="container-x">
         <div className="reveal mx-auto max-w-3xl rounded-2xl border border-pharos-red/20 bg-graphite-2/60 p-8 md:p-10">
           <div className="flex flex-col items-center gap-8 md:flex-row md:items-center md:gap-12">
 
-            {/* QR Code */}
-            <div className="flex shrink-0 flex-col items-center gap-3">
-              <div className="rounded-xl border border-white/10 bg-white p-3">
+            {/* QR Code — imagem estática salva em public/qrcode-avaliacoes.png */}
+            <a
+              href={GOOGLE_REVIEW_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 flex-col items-center gap-3 group"
+              aria-label="Abrir página de avaliações da PHAROS no Google"
+            >
+              <div className="rounded-xl border border-white/10 bg-white p-3 transition-transform duration-200 group-hover:scale-105">
                 <img
-                  src={qrUrl}
-                  alt="QR Code para avaliação da PHAROS no Google"
+                  src="/qrcode-avaliacoes.png"
+                  alt="QR Code — Avaliar a PHAROS no Google"
                   width={180}
                   height={180}
                   className="block"
                   loading="lazy"
                 />
               </div>
-              <span className="flex items-center gap-1 text-xs text-steel">
+              <span className="flex items-center gap-1 text-xs text-steel group-hover:text-white transition-colors">
                 <QrCodeIcon className="h-3.5 w-3.5 text-pharos-red" />
                 Aponte a câmera para avaliar
               </span>
-            </div>
+            </a>
 
             {/* Texto */}
             <div className="text-center md:text-left">
@@ -59,6 +64,7 @@ export default function ReviewCTA() {
                 Avaliar a PHAROS no Google
               </a>
             </div>
+
           </div>
         </div>
       </div>

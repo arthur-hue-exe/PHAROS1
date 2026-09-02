@@ -86,7 +86,7 @@ serve(async (req) => {
   // 1. Busca metadados dos documentos no banco
   const { data: docs, error: dbErr } = await supabase
     .from('documents')
-    .select('id, document_type, storage_path, file_name, file_size, mime_type, uploaded_at')
+    .select('id, document_type, storage_path, file_name, file_size, mime_type, uploaded_at, print_requested')
     .eq('user_id', userId)
     .order('uploaded_at', { ascending: true });
 
@@ -117,6 +117,7 @@ serve(async (req) => {
         ...doc,
         download_url: signedData.signedUrl,
         download_error: null,
+        print_requested: (doc as Record<string, unknown>).print_requested ?? false,
       };
     })
   );

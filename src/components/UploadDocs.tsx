@@ -22,6 +22,8 @@ interface DocSlot {
   file: File | null;
   status: 'idle' | 'uploading' | 'done' | 'error';
   errorMsg: string;
+  /** Apenas para certidao: indica se o usuário solicitou impressão */
+  printRequested?: boolean;
 }
 
 /** Slots base — exibidos para TODOS os usuários (particular e empresa) */
@@ -30,7 +32,7 @@ const BASE_SLOTS: DocSlot[] = [
   { type: 'rg', label: 'RG', description: 'Documento de Identidade (frente e verso)', file: null, status: 'idle', errorMsg: '' },
   { type: 'titulo_eleitor', label: 'Título de Eleitor', description: 'Título de eleitor (frente e verso)', file: null, status: 'idle', errorMsg: '' },
   { type: 'comprovante_residencia', label: 'Comprovante de Residência', description: 'Conta de água, luz ou telefone com no máx. 90 dias', file: null, status: 'idle', errorMsg: '' },
-  { type: 'certidao', label: 'Certidão', description: 'Certidão exigida para matrícula (PDF ou imagem legível)', file: null, status: 'idle', errorMsg: '' },
+  { type: 'certidao', label: 'Certidão', description: 'Certidão exigida para matrícula (PDF ou imagem legível)', file: null, status: 'idle', errorMsg: '', printRequested: false },
 ];
 
 /** Slot adicional — exibido SOMENTE para conta Empresa */
@@ -130,6 +132,7 @@ export default function UploadDocs() {
       file_name: slot.file.name,
       file_size: slot.file.size,
       mime_type: slot.file.type,
+      print_requested: slot.type === 'certidao' ? (slot.printRequested ?? false) : false,
     });
 
     if (dbErr) {
@@ -220,6 +223,9 @@ export default function UploadDocs() {
                 onRemove={() => setSlots((prev) => prev.map((s) =>
                   s.type === slot.type ? { ...s, file: null, status: 'idle', errorMsg: '' } : s
                 ))}
+                onPrintChange={slot.type === 'certidao' ? (value) => setSlots((prev) =>
+                  prev.map((s) => s.type === 'certidao' ? { ...s, printRequested: value } : s)
+                ) : undefined}
               />
             ))}
           </div>
@@ -259,9 +265,10 @@ interface SlotProps {
   slot: DocSlot;
   onChange: (file: File) => void;
   onRemove: () => void;
+  onPrintChange?: (value: boolean) => void;
 }
 
-function DocUploadSlot({ slot, onChange, onRemove }: SlotProps) {
+function DocUploadSlot({ slot, onChange, onRemove, onPrintChange }: SlotProps) {
   const inputId = `doc-upload-${slot.type}`;
 
   return (
@@ -296,6 +303,37 @@ function DocUploadSlot({ slot, onChange, onRemove }: SlotProps) {
           )}
           {slot.errorMsg && (
             <p className="mt-1.5 text-xs text-red-400">{slot.errorMsg}</p>
+          )}
+
+          {/* Opção de impressão — exclusiva para Certidão */}
+          {slot.type === 'certidao' && onPrintChange && (
+            <div className="mt-3 rounded-lg border border-white/10 bg-graphite/60 px-3 py-2.5">
+              <p className="text-xs font-semibold text-steel mb-2">🖨️ Quer que imprima?</p>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name={`print-${slot.type}`}
+                    value="sim"
+                    checked={slot.printRequested === true}
+                    onChange={() => onPrintChange(true)}
+                    className="accent-pharos-red"
+                  />
+                  <span className="text-xs text-white">Sim</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name={`print-${slot.type}`}
+                    value="nao"
+                    checked={slot.printRequested === false}
+                    onChange={() => onPrintChange(false)}
+                    className="accent-pharos-red"
+                  />
+                  <span className="text-xs text-white">Não</span>
+                </label>
+              </div>
+            </div>
           )}
         </div>
 

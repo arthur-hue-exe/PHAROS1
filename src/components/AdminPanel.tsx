@@ -68,6 +68,7 @@ interface DocRecord {
   uploaded_at: string;
   download_url: string | null;
   download_error: string | null;
+  print_requested: boolean;
 }
 
 interface CourseRecord {
@@ -760,6 +761,12 @@ function UserDetail({
                   <span className="font-display text-sm font-semibold text-white">
                     {DOC_LABELS[doc.document_type] ?? doc.document_type}
                   </span>
+                  {/* Indicador de impressão — apenas para certidão */}
+                  {doc.document_type === 'certidao' && doc.print_requested && (
+                    <span className="flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
+                      🖨️ Solicitou impressão
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-steel truncate mt-0.5">{doc.file_name}</div>
                 <div className="text-xs text-steel/60 mt-0.5">

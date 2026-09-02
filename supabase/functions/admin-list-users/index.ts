@@ -78,14 +78,19 @@ serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  // ── 1. Busca todos os perfis ───────────────────────────────────────────────
+  // Parâmetro ?archived=true → lista arquivados; padrão → lista ativos
+  const url = new URL(req.url);
+  const showArchived = url.searchParams.get('archived') === 'true';
+
+  // ── 1. Busca perfis filtrados por is_archived ──────────────────────────────
   const { data: profiles, error: profilesErr } = await supabase
     .from('profiles')
     .select(
       'id, name, email, phone, email_verified, documents_uploaded, ' +
       'documents_uploaded_at, created_at, account_type, company_name, cnpj, ' +
-      'course_slug, course_name'
+      'course_slug, course_name, is_archived, archived_at'
     )
+    .eq('is_archived', showArchived)
     .order('created_at', { ascending: false });
 
   if (profilesErr) {
@@ -130,6 +135,8 @@ serve(async (req) => {
     cnpj: p.cnpj ?? null,
     course_slug: p.course_slug ?? null,
     course_name: p.course_name ?? null,
+    is_archived: p.is_archived ?? false,
+    archived_at: p.archived_at ?? null,
     enrollees: p.account_type === 'empresa' ? (enrolleesMap[p.id] ?? []) : [],
   }));
 

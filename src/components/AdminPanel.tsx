@@ -15,7 +15,7 @@ import {
   ShieldCheck, LogOut, Users, FileText, Eye, Loader2,
   ArrowLeft, CheckCircle2, Clock, AlertCircle, Download,
   BookOpen, ToggleLeft, ToggleRight, RefreshCw, Search,
-  XCircle, ExternalLink, Building2, User,
+  XCircle, ExternalLink, Building2, User, Archive, ArchiveRestore,
 } from 'lucide-react';
 import { useAdmin } from '@/context/AdminContext';
 import { useRouter } from '@/context/RouterContext';
@@ -41,6 +41,8 @@ interface UserRecord {
   cnpj: string | null;
   course_slug: string | null;
   course_name: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
   enrollees: EnrolleeRecord[];
 }
 
@@ -100,7 +102,7 @@ const ENROLLEE_STATUS_CLASS: Record<string, string> = {
   cancelled: 'bg-white/5 border-white/10 text-steel',
 };
 
-type Tab = 'clients' | 'courses';
+type Tab = 'clients' | 'courses' | 'archived';
 
 // ── Root: guarda de autenticação ──────────────────────────────────────────────
 
@@ -178,6 +180,12 @@ function AdminDashboard({
               icon={<BookOpen className="h-4 w-4" />}
               label="Cursos"
             />
+            <TabButton
+              active={activeTab === 'archived'}
+              onClick={() => setActiveTab('archived')}
+              icon={<Archive className="h-4 w-4" />}
+              label="Arquivados"
+            />
           </div>
         </div>
       </div>
@@ -189,6 +197,9 @@ function AdminDashboard({
         )}
         {activeTab === 'courses' && (
           <CoursesTab token={token} />
+        )}
+        {activeTab === 'archived' && (
+          <ArchivedTab token={token} navigate={navigate} />
         )}
       </div>
     </div>
@@ -279,6 +290,30 @@ function ClientsTab({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
 
+  // ── Estado do modal de arquivamento ─────────────────────────────────────────
+  const [archiveTarget, setArchiveTarget] = useState<UserRecord | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveSuccess, setArchiveSuccess] = useState('');
+
+  const { archiveUser } = useAdmin();
+
+  // ── Confirmar arquivamento ─────────────────────────────────────────────────
+  const handleArchiveConfirm = async () => {
+    if (!archiveTarget) return;
+    setArchiving(true);
+    const ok = await archiveUser(archiveTarget.id, true);
+    setArchiving(false);
+    setArchiveTarget(null);
+    if (ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== archiveTarget.id));
+      setArchiveSuccess('Usuário removido do painel.');
+      setTimeout(() => setArchiveSuccess(''), 4000);
+    } else {
+      setError('Não foi possível remover o usuário do painel. Tente novamente.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
   // ── Busca usuários ──────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -302,6 +337,8 @@ function ClientsTab({
         cnpj: u.cnpj ?? null,
         course_slug: u.course_slug ?? null,
         course_name: u.course_name ?? null,
+        is_archived: u.is_archived ?? false,
+        archived_at: u.archived_at ?? null,
         enrollees: Array.isArray(u.enrollees) ? u.enrollees : [],
       })) : [];
       setUsers(normalized);
@@ -423,6 +460,40 @@ function ClientsTab({
   // ── Renderização: lista por curso ───────────────────────────────────────────
   return (
     <div>
+      {/* Modal de confirmação de arquivamento */}
+      {archiveTarget && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-noir/80 backdrop-blur-sm" onClick={() => !archiving && setArchiveTarget(null)} />
+          <div className="animate-scale-in relative w-full max-w-md rounded-2xl border border-white/10 bg-graphite-2 p-8 shadow-2xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 mx-auto">
+              <Archive className="h-6 w-6 text-amber-400" />
+            </div>
+            <h2 className="mt-5 font-display text-xl font-bold text-white text-center">Remover usuário do painel?</h2>
+            <p className="mt-3 text-sm leading-relaxed text-steel text-center">
+              <span className="font-semibold text-white">{archiveTarget.name ?? archiveTarget.email}</span> será removido da lista principal do painel administrativo, mas sua conta e todos os seus documentos permanecerão armazenados no sistema.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button onClick={() => setArchiveTarget(null)} disabled={archiving} className="btn-secondary flex-1">Cancelar</button>
+              <button
+                onClick={handleArchiveConfirm}
+                disabled={archiving}
+                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-amber-500/20 border border-amber-500/30 px-6 py-3 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-500/30 disabled:opacity-60"
+              >
+                {archiving ? <Loader2 className="h-4 w-4 animate-spin-slow" /> : <Archive className="h-4 w-4" />}
+                Remover do painel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Feedback de sucesso */}
+      {archiveSuccess && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {archiveSuccess}
+        </div>
+      )}
+
       {/* Cabeçalho + busca + filtro */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -556,6 +627,15 @@ function ClientsTab({
                             )}
                           </div>
                           <Eye className="h-4 w-4 text-steel/50 shrink-0" />
+                          {/* Botão remover do painel */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setArchiveTarget(u); }}
+                            className="shrink-0 flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] text-steel hover:border-amber-500/40 hover:text-amber-400 transition-colors"
+                            title="Remover do painel"
+                          >
+                            <Archive className="h-3 w-3" />
+                            <span className="hidden sm:inline">Remover</span>
+                          </button>
                         </div>
                       );
                     })}
@@ -711,6 +791,223 @@ function UserDetail({
       {/* Candidatos (empresas) */}
       {user.account_type === 'empresa' && (
         <EnrolleesSection enrollees={user.enrollees} />
+      )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// ABA: ARQUIVADOS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function ArchivedTab({
+  token,
+  navigate,
+}: {
+  token: string;
+  navigate: (r: { name: 'admin-user'; userId: string } | { name: 'admin' }) => void;
+}) {
+  const { archiveUser } = useAdmin();
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+  const [docs, setDocs] = useState<DocRecord[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsError, setDocsError] = useState('');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const fetchArchived = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${EDGE_BASE}/admin-list-users?archived=true`, {
+        headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error ?? `Erro ${res.status}`); return; }
+      setUsers(Array.isArray(data) ? data.map((u: UserRecord) => ({
+        ...u,
+        account_type: (u.account_type as 'particular' | 'empresa') ?? 'particular',
+        company_name: u.company_name ?? null,
+        cnpj: u.cnpj ?? null,
+        course_slug: u.course_slug ?? null,
+        course_name: u.course_name ?? null,
+        is_archived: u.is_archived ?? true,
+        archived_at: u.archived_at ?? null,
+        enrollees: Array.isArray(u.enrollees) ? u.enrollees : [],
+      })) : []);
+    } catch {
+      setError('Erro de rede ao carregar usuários arquivados.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchArchived(); }, [fetchArchived]);
+
+  const handleRestore = async (u: UserRecord) => {
+    setRestoringId(u.id);
+    const ok = await archiveUser(u.id, false);
+    setRestoringId(null);
+    if (ok) {
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      setSuccessMsg(`"${u.name ?? u.email}" restaurado para a lista principal.`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } else {
+      setError('Não foi possível restaurar o usuário. Tente novamente.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
+  const openUser = async (u: UserRecord) => {
+    setSelectedUser(u);
+    setDocs([]);
+    setDocsError('');
+    navigate({ name: 'admin-user', userId: u.id });
+    setDocsLoading(true);
+    try {
+      const res = await fetch(`${EDGE_BASE}/admin-user-docs?userId=${u.id}`, {
+        headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
+      });
+      const data = await res.json().catch(() => ([]));
+      if (!res.ok) { setDocsError(data.error ?? 'Erro ao carregar documentos.'); setDocs([]); }
+      else setDocs(Array.isArray(data) ? data : []);
+    } catch { setDocsError('Erro de rede.'); setDocs([]); }
+    finally { setDocsLoading(false); }
+  };
+
+  const handleDownload = (doc: DocRecord) => {
+    if (!doc.download_url) return;
+    setDownloadingId(doc.id);
+    window.open(doc.download_url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => setDownloadingId(null), 1500);
+  };
+
+  const handleDownloadAll = async () => {
+    const valid = docs.filter(d => d.download_url);
+    if (valid.length === 0) return;
+    setDownloadingAll(true);
+    valid.forEach((d, i) => setTimeout(() => window.open(d.download_url!, '_blank', 'noopener,noreferrer'), i * 400));
+    setTimeout(() => setDownloadingAll(false), valid.length * 400 + 500);
+  };
+
+  if (selectedUser) {
+    return (
+      <UserDetail
+        user={selectedUser}
+        docs={docs}
+        docsLoading={docsLoading}
+        docsError={docsError}
+        downloadingId={downloadingId}
+        downloadingAll={downloadingAll}
+        onDownload={handleDownload}
+        onDownloadAll={handleDownloadAll}
+        onBack={() => { setSelectedUser(null); setDocs([]); navigate({ name: 'admin' }); }}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Archive className="h-5 w-5 text-amber-400" />
+          <h2 className="font-display text-xl font-bold text-white">Usuários Arquivados</h2>
+          {!loading && (
+            <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-400">
+              {users.length}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={fetchArchived}
+          disabled={loading}
+          className="flex items-center gap-1.5 rounded-md border border-white/15 px-3 py-2 text-xs text-steel hover:text-white transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Atualizar</span>
+        </button>
+      </div>
+
+      <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-400/80">
+        Usuários arquivados não aparecem na lista principal. Conta, documentos e dados permanecem intactos.
+      </div>
+
+      {successMsg && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />{successMsg}
+        </div>
+      )}
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+          <AlertCircle className="mb-1 h-4 w-4" />{error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-steel py-8">
+          <Loader2 className="h-5 w-5 animate-spin-slow" />Carregando arquivados...
+        </div>
+      ) : users.length === 0 ? (
+        <p className="text-sm text-steel py-8">Nenhum usuário arquivado.</p>
+      ) : (
+        <div className="space-y-3">
+          {users.map((u) => (
+            <div key={u.id} className="rounded-xl border border-white/10 bg-graphite-2/60 p-4">
+              <div className="flex items-start gap-3 flex-wrap">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/10 font-display text-sm font-bold text-amber-400">
+                  {(u.name ?? u.email).charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-white">{u.name ?? '—'}</span>
+                    <AccountTypeBadge accountType={u.account_type} />
+                  </div>
+                  <p className="text-xs text-steel mt-0.5 truncate">{u.email}</p>
+                  {u.course_name && (
+                    <p className="text-xs text-steel/70 mt-0.5">
+                      <BookOpen className="inline h-3 w-3 mr-1 text-pharos-red" />
+                      {u.course_name}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-steel/60">
+                    <span>Cadastro: {new Date(u.created_at).toLocaleDateString('pt-BR')}</span>
+                    {u.archived_at && (
+                      <span>Arquivado: {new Date(u.archived_at).toLocaleDateString('pt-BR')}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => openUser(u)}
+                    className="flex items-center gap-1 rounded-md border border-white/15 px-2.5 py-1.5 text-xs text-steel hover:text-white transition-colors"
+                    title="Ver documentos"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Docs</span>
+                  </button>
+                  <button
+                    onClick={() => handleRestore(u)}
+                    disabled={restoringId === u.id}
+                    className="flex items-center gap-1.5 rounded-md bg-green-500/10 border border-green-500/30 px-3 py-1.5 text-xs font-semibold text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-60"
+                    title="Restaurar para lista principal"
+                  >
+                    {restoringId === u.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin-slow" />
+                    ) : (
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                    )}
+                    Restaurar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

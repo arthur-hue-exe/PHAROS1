@@ -41,6 +41,8 @@ interface AdminContextValue {
   login: (user: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateCourseAvailability: (slug: string, isAvailable: boolean) => Promise<boolean>;
+  /** Arquiva (archive=true) ou restaura (archive=false) um usuário no painel */
+  archiveUser: (userId: string, archive: boolean) => Promise<boolean>;
 }
 
 const SESSION_KEY = 'pharos_admin_token';
@@ -228,8 +230,41 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [adminToken]
   );
 
+  // ── archiveUser ───────────────────────────────────────────────────────────
+  const archiveUser = useCallback(
+    async (userId: string, archive: boolean): Promise<boolean> => {
+      if (!adminToken) return false;
+      try {
+        const res = await fetch(`${EDGE_BASE}/admin-archive-user`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`,
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ userId, archive }),
+        });
+        if (res.status === 401) {
+          setAdminToken(null);
+          setAdminError('Sessão expirada. Faça login novamente.');
+          return false;
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          console.error('[AdminContext] archiveUser falhou:', res.status, data);
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error('[AdminContext] Erro de rede ao arquivar usuário:', err);
+        return false;
+      }
+    },
+    [adminToken]
+  );
+
   return (
-    <AdminContext.Provider value={{ adminToken, adminLoading, adminError, login, logout, updateCourseAvailability }}>
+    <AdminContext.Provider value={{ adminToken, adminLoading, adminError, login, logout, updateCourseAvailability, archiveUser }}>
       {children}
     </AdminContext.Provider>
   );
